@@ -1,18 +1,40 @@
-# React + Vite
+# E-Ticaret Demo Projesi
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Bu proje, basit bir e‑ticaret demo uygulaması için modern bir klasör yapısı ve Supabase entegrasyonu sunar.
 
-Currently, two official plugins are available:
+## Nasıl Çalıştırılır
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```bash
+npm install
+npm run dev
+```
 
-## React Compiler
+## Proje Klasör Yapısı
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+- `src/` – Uygulama kaynak kodları.
+  - `components/` – Yeniden kullanılabilir UI bileşenleri (ui, layout, product, cart, checkout, auth).
+  - `pages/` – Sayfa bileşenleri (Home, Product, Cart, Checkout, Account, Admin).
+  - `hooks/` – Özel React hookları.
+  - `store/` – Durum yönetimi (Context API).
+  - `utils/` – Yardımcı fonksiyonlar.
+  - `config/` – Konfigürasyon dosyaları (rotalar, ortam ayarları).
+  - `styles/` – Global ve bileşen stilleri.
+  - `lib/` – Supabase client (`supabase.js`).
+- `public/` – Statik dosyalar (favicon, logo vb.).
+- `assets/` – Tasarım varlıkları (fontlar, görseller, mockup’lar).
+- `README.md` – Proje dokümantasyonu.
 
-Note: This will impact Vite dev & build performances.
+## Supabase Entegrasyonu
 
-## Expanding the ESLint configuration
+Supabase, veri depolama ve kimlik doğrulama için kullanılır. `src/lib/supabase.js` dosyasında client oluşturulmuş olup, uygulamanın her yerinden `import { supabase } from "./lib/supabase"` ile erişilebilir. `.env` dosyasına `VITE_SUPABASE_URL` ve `VITE_SUPABASE_ANON_KEY` eklemeyi unutmayın.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## İleriki Adımlar
+
+- Ürün, sepet ve ödeme akışlarını Supabase tabloları ve RPC’leri ile geliştirmek.
+- Gelişmiş UI bileşenleri ve animasyonlar eklemek.
+- Gerektiğinde admin paneli ve ek sayfalar eklemek.
+
+
+Bu proje, basit bir e‑ticaret demo uygulaması için temel klasör yapısını içerir.
+
+
