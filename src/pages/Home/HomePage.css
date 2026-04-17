@@ -15,7 +15,7 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  background: linear-gradient(145deg, #1e293b 0%, #0f172a 50%, #020617 100%);
 }
 
 .hero-bg-blur {
@@ -28,7 +28,7 @@
 .hero-bg-blur-1 {
   width: 500px;
   height: 500px;
-  background: rgba(230, 57, 70, 0.25);
+  background: rgba(52, 92, 158, 0.25);
   top: -100px;
   right: -100px;
 }
@@ -36,7 +36,7 @@
 .hero-bg-blur-2 {
   width: 400px;
   height: 400px;
-  background: rgba(99, 102, 241, 0.15);
+  background: rgba(139, 124, 246, 0.15);
   bottom: -80px;
   left: -60px;
 }
@@ -111,7 +111,7 @@
 
 .hero-cta {
   padding: 0.9rem 2.5rem;
-  background: linear-gradient(135deg, #e63946, #c1121f);
+  background: linear-gradient(135deg, var(--cta), #fbbf24);
   color: #fff;
   border: none;
   border-radius: 50px;
@@ -119,13 +119,13 @@
   font-weight: 700;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 4px 20px rgba(230, 57, 70, 0.45);
+  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.45);
   letter-spacing: 0.2px;
 }
 
 .hero-cta:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 28px rgba(230, 57, 70, 0.55);
+  box-shadow: 0 8px 28px rgba(245, 158, 11, 0.55);
 }
 
 .hero-cta-secondary {

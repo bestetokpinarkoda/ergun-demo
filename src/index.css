@@ -6,11 +6,15 @@
 
 :root {
   --font: 'Inter', system-ui, -apple-system, sans-serif;
-  --primary: #e63946;
-  --primary-dark: #c1121f;
-  --text: #1a1a2e;
-  --text-muted: #6b7280;
-  --bg: #f9fafb;
+  --primary: #345C9E;
+  --primary-dark: #274b83;
+  --cta: #F59E0B;
+  --ai: #8B7CF6;
+  --danger: #EF4444;
+  --success: #10B981;
+  --text: #334155;
+  --text-muted: #4B5563;
+  --bg: #F8FAFC;
   --white: #ffffff;
   --border: #e5e7eb;
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05);
