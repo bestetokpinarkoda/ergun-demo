@@ -24,7 +24,7 @@
   font-size: 1.5rem;
   font-weight: 900;
   letter-spacing: -0.8px;
-  background: linear-gradient(135deg, #e63946, #c1121f);
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -61,9 +61,9 @@
 }
 
 .nav-btn:hover {
-  background: #fef2f2;
+  background: #f1f5f9;
   color: var(--primary);
-  border-color: rgba(230, 57, 70, 0.15);
+  border-color: rgba(52, 92, 158, 0.15);
 }
 
 .favorites-btn:hover,
@@ -72,18 +72,18 @@
 }
 
 .login-btn {
-  background: var(--primary);
+  background: var(--cta);
   color: #fff;
-  border-color: var(--primary);
+  border-color: var(--cta);
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(230, 57, 70, 0.3);
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
 }
 
 .login-btn:hover {
-  background: var(--primary-dark);
-  border-color: var(--primary-dark);
+  background: #d97706;
+  border-color: #d97706;
   color: #fff;
-  box-shadow: 0 4px 14px rgba(230, 57, 70, 0.4);
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4);
   transform: translateY(-1px);
 }
 
