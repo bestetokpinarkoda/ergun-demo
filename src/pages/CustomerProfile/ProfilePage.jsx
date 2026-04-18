@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
+import AddressesTab from './tabs/AddressesTab'
+import CardsTab from './tabs/CardsTab'
+import OrdersTab from './tabs/OrdersTab'
 import './ProfilePage.css'
 
 export default function ProfilePage({ onLogout }) {
@@ -146,48 +149,9 @@ export default function ProfilePage({ onLogout }) {
             </div>
           )}
 
-          {activeTab === 'addresses' && (
-            <div className="profile-section">
-              <div className="profile-section-header">
-                <h2>Adres Defterim</h2>
-                <button className="profile-add-btn">+ Yeni Adres Ekle</button>
-              </div>
-              <p className="profile-section-desc">Siparişlerinizde kullanmak üzere adreslerinizi yönetin.</p>
-              
-              <div className="profile-empty-state">
-                <span className="empty-icon">📍</span>
-                <p>Henüz kayıtlı bir adresiniz bulunmuyor.</p>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'cards' && (
-            <div className="profile-section">
-              <div className="profile-section-header">
-                <h2>Kayıtlı Kartlarım</h2>
-                <button className="profile-add-btn">+ Yeni Kart Ekle</button>
-              </div>
-              <p className="profile-section-desc">Hızlı ve güvenli alışveriş için kredi kartlarınızı kaydedin.</p>
-              
-              <div className="profile-empty-state">
-                <span className="empty-icon">💳</span>
-                <p>Kayıtlı bir kredi/banka kartınız bulunmuyor.</p>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'orders' && (
-            <div className="profile-section">
-              <h2>Siparişlerim</h2>
-              <p className="profile-section-desc">Geçmiş ve devam eden siparişlerinizi takip edin.</p>
-              
-              <div className="profile-empty-state">
-                <span className="empty-icon">📦</span>
-                <p>Henüz hiç sipariş vermemişsiniz.</p>
-                <button className="profile-save-btn mt-4">Alışverişe Başla</button>
-              </div>
-            </div>
-          )}
+          {activeTab === 'addresses' && <AddressesTab />}
+          {activeTab === 'cards' && <CardsTab />}
+          {activeTab === 'orders' && <OrdersTab />}
         </section>
 
       </div>
