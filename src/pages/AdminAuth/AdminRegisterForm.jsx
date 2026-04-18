@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import LegalModal from '../../components/auth/LegalModal'
+import { useAuth } from '../../contexts/AuthContext'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 const IBAN_RE = /^[A-Z]{2}[0-9]{2}[A-Z0-9]{1,30}$/
@@ -18,19 +19,8 @@ function scorePassword(pw) {
 
 const STRENGTH_LABELS = ['Çok zayıf', 'Zayıf', 'Orta', 'Güçlü', 'Çok güçlü']
 
-function fakeAdminSignUp(data) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      if (data.email.endsWith('@test.fail')) {
-        reject(new Error('Bu e-posta zaten kayıtlı.'))
-        return
-      }
-      resolve({ user: { ...data, status: 'pending_approval' } })
-    }, 1200)
-  })
-}
-
 export default function AdminRegisterForm() {
+  const { signUp } = useAuth()
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -101,27 +91,21 @@ export default function AdminRegisterForm() {
   }
 
   const onSubmit = async (e) => {
-    e.preventDefault()
+    if (e && e.preventDefault) e.preventDefault()
     setError('')
     if (!validateStep3()) return
 
     setLoading(true)
     try {
-      await fakeAdminSignUp({
-        firstName,
-        lastName,
+      await signUp({
         email,
-        phone,
-        companyName,
-        vkn,
-        companyAddress,
-        city,
-        iban,
         password,
+        fullName: `${firstName} ${lastName}`,
+        role: 'supplier',
       })
       setSubmitted(true)
     } catch (err) {
-      setError(err.message)
+      setError(err.message || 'Kayıt sırasında bir hata oluştu.')
     } finally {
       setLoading(false)
     }

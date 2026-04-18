@@ -68,6 +68,17 @@ export function AuthProvider({ children }) {
     return data
   }, [])
 
+  const signInWithOAuth = useCallback(async (provider) => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: `${window.location.origin}/`,
+      },
+    })
+    if (error) throw error
+    return data
+  }, [])
+
   const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut()
     if (error) throw error
@@ -81,6 +92,7 @@ export function AuthProvider({ children }) {
     loading,
     signUp,
     signIn,
+    signInWithOAuth,
     signOut,
   }
 
