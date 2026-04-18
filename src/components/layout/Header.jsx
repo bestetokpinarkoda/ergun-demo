@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Logo from '../ui/Logo'
+import { useAuth } from '../../contexts/AuthContext'
 import './Header.css'
 
 const CATEGORIES = [
@@ -10,7 +11,8 @@ const CATEGORIES = [
   'Günlük Tech',
 ]
 
-export default function Header({ onLoginClick, onAdminClick }) {
+export default function Header({ onLoginClick, onAdminClick, onProfileClick }) {
+  const { user, profile } = useAuth()
   const [cartCount] = useState(0)
   const [favCount] = useState(0)
   const [search, setSearch] = useState('')
@@ -64,13 +66,29 @@ export default function Header({ onLoginClick, onAdminClick }) {
             {cartCount > 0 && <span className="action-badge">{cartCount}</span>}
           </button>
 
-          <button className="action-btn" onClick={onLoginClick}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-            <span>Hesabım</span>
-          </button>
+          {user ? (
+            <button className="action-btn is-user-logged" onClick={onProfileClick}>
+              <div className="action-avatar">
+                {profile?.avatar_url ? (
+                  <img src={profile.avatar_url} alt={profile?.full_name || 'Avatar'} referrerPolicy="no-referrer" />
+                ) : (
+                  profile?.full_name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'M'
+                )}
+              </div>
+              <div className="action-user-info">
+                <span className="user-greeting">Hoş Geldin,</span>
+                <span className="user-name">{profile?.full_name?.split(' ')[0] || 'Müşteri'}</span>
+              </div>
+            </button>
+          ) : (
+            <button className="action-btn" onClick={onLoginClick}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+              <span>Hesabım</span>
+            </button>
+          )}
         </nav>
       </div>
 
