@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import LegalModal from '../../components/auth/LegalModal'
 import { useAuth } from '../../contexts/AuthContext'
-import { supabase } from '../../lib/supabase'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
@@ -32,26 +31,8 @@ export default function LoginForm() {
 
     setLoading(true)
     try {
-      const { user } = await signIn({ email, password })
-      
-      // Kullanıcının rolünü kontrol edelim
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-        
+      await signIn({ email, password })
       setSuccess(true)
-      
-      // Rolüne göre yönlendirme yapalım
-      if (profile?.role === 'supplier' || profile?.role === 'admin') {
-        // Satıcı/Yönetici paneline yönlendir
-        window.location.href = '/admin-panel' // İleride yapacağımız panelin rotası
-      } else {
-        // Normal müşteri ise ana sayfaya yönlendir
-        window.location.href = '/'
-      }
-      
     } catch (err) {
       setError(err.message || 'Giriş yapılamadı.')
     } finally {
