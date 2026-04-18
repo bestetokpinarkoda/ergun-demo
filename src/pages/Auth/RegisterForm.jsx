@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import LegalModal from '../../components/auth/LegalModal'
+import { useAuth } from '../../contexts/AuthContext'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
@@ -16,19 +17,9 @@ function scorePassword(pw) {
 
 const STRENGTH_LABELS = ['Çok zayıf', 'Zayıf', 'Orta', 'Güçlü', 'Çok güçlü']
 
-function fakeSignUp({ email }) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      if (email.endsWith('@test.fail')) {
-        reject(new Error('Bu e-posta zaten kayıtlı.'))
-        return
-      }
-      resolve({ user: { email } })
-    }, 1000)
-  })
-}
-
 export default function RegisterForm() {
+  const { signUp } = useAuth()
+  const [role, setRole] = useState('customer')
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -62,10 +53,10 @@ export default function RegisterForm() {
 
     setLoading(true)
     try {
-      await fakeSignUp({ email, fullName, password })
+      await signUp({ email, password, fullName, role })
       setSuccess(true)
     } catch (err) {
-      setError(err.message)
+      setError(err.message || 'Kayıt sırasında bir hata oluştu.')
     } finally {
       setLoading(false)
     }
@@ -77,6 +68,31 @@ export default function RegisterForm() {
 
   return (
     <form className="auth-form" onSubmit={onSubmit} noValidate>
+      <div className="auth-role-toggle" role="tablist" aria-label="Hesap türü">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={role === 'customer'}
+          className={`auth-role-btn ${role === 'customer' ? 'is-active' : ''}`}
+          onClick={() => setRole('customer')}
+          disabled={loading}
+        >
+          <span className="auth-role-icon" aria-hidden="true">🛍️</span>
+          Müşteri
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={role === 'supplier'}
+          className={`auth-role-btn ${role === 'supplier' ? 'is-active' : ''}`}
+          onClick={() => setRole('supplier')}
+          disabled={loading}
+        >
+          <span className="auth-role-icon" aria-hidden="true">🏪</span>
+          Tedarikçi
+        </button>
+      </div>
+
       <div className="auth-sso">
         <button type="button" className="sso-btn" disabled={loading}>
           <svg viewBox="0 0 24 24" aria-hidden="true">

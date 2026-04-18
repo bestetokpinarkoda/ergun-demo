@@ -1,21 +1,11 @@
 import { useState } from 'react'
 import LegalModal from '../../components/auth/LegalModal'
+import { useAuth } from '../../contexts/AuthContext'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
-function fakeSignIn({ email, password }) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      if (password.length < 6) {
-        reject(new Error('E-posta ya da şifre hatalı.'))
-        return
-      }
-      resolve({ user: { email } })
-    }, 900)
-  })
-}
-
 export default function LoginForm() {
+  const { signIn } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
@@ -41,10 +31,10 @@ export default function LoginForm() {
 
     setLoading(true)
     try {
-      await fakeSignIn({ email, password })
+      await signIn({ email, password })
       setSuccess(true)
     } catch (err) {
-      setError(err.message)
+      setError(err.message || 'Giriş yapılamadı.')
     } finally {
       setLoading(false)
     }

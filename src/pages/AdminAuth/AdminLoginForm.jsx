@@ -1,21 +1,12 @@
 import { useState } from 'react'
 import LegalModal from '../../components/auth/LegalModal'
+import { supabase } from '../../lib/supabase'
+import { useAuth } from '../../contexts/AuthContext'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
-function fakeAdminSignIn({ email, password }) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      if (password.length < 6) {
-        reject(new Error('E-posta ya da şifre hatalı.'))
-        return
-      }
-      resolve({ user: { email, role: 'admin' } })
-    }, 900)
-  })
-}
-
 export default function AdminLoginForm() {
+  const { signIn, signOut } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
@@ -41,10 +32,23 @@ export default function AdminLoginForm() {
 
     setLoading(true)
     try {
-      await fakeAdminSignIn({ email, password })
+      const { user } = await signIn({ email, password })
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      if (profileError) throw new Error('Profil bilgisi alınamadı.')
+
+      if (profile.role !== 'admin') {
+        await signOut()
+        throw new Error('Bu alana yalnızca yönetici hesapları erişebilir.')
+      }
+
       setSuccess(true)
     } catch (err) {
-      setError(err.message)
+      setError(err.message || 'Giriş yapılamadı.')
     } finally {
       setLoading(false)
     }
