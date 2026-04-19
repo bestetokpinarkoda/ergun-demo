@@ -10,6 +10,7 @@ import CartPage from './pages/Cart/CartPage'
 import FavoritesPage from './pages/Favorites/FavoritesPage'
 import ProfilePage from './pages/CustomerProfile/ProfilePage'
 import AdminDashboard from './pages/AdminDashboard/AdminDashboard'
+import CategoryPage from './pages/Category/CategoryPage'
 import LoginModal from './components/ui/LoginModal'
 import { AppProvider } from './store/AppContext'
 import { useAuth } from './contexts/AuthContext'
@@ -22,10 +23,12 @@ function App() {
   const [splashDone, setSplashDone] = useState(false)
   const [view, setView] = useState('home')
   const [selectedProductId, setSelectedProductId] = useState(null)
+  const [selectedCategory, setSelectedCategory] = useState(null)
 
   const navigateTo = (v, params = {}) => {
     setView(v)
     if (params.productId !== undefined) setSelectedProductId(params.productId)
+    if (params.category !== undefined) setSelectedCategory(params.category)
     window.scrollTo(0, 0)
   }
 
@@ -38,6 +41,7 @@ function App() {
       case 'cart':       return <CartPage onBack={() => navigateTo('home')} onNavigate={navigateTo} />
       case 'favorites':  return <FavoritesPage onBack={() => navigateTo('home')} onNavigate={navigateTo} />
       case 'profile':    return <ProfilePage onBack={() => navigateTo('home')} />
+      case 'category':   return <CategoryPage category={selectedCategory} onBack={() => navigateTo('home')} onProductClick={(id) => navigateTo('product', { productId: id })} />
       default:           return <HomePage onProductClick={(id) => navigateTo('product', { productId: id })} />
     }
   }
@@ -71,6 +75,8 @@ function App() {
               onCartClick={() => navigateTo('cart')}
               onFavClick={() => navigateTo('favorites')}
               onProfileClick={() => navigateTo('profile')}
+              onCategoryClick={(cat) => navigateTo('category', { category: cat })}
+              onProductClick={(id) => navigateTo('product', { productId: id })}
             />
           )}
           {renderView()}

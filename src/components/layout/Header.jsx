@@ -1,22 +1,156 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Logo from '../ui/Logo'
 import { useAuth } from '../../contexts/AuthContext'
 import './Header.css'
 
-const CATEGORIES = [
-  'Telefon Aksesuarları',
-  'Ses Ürünleri',
-  'Bilgisayar Aksesuarları',
-  'Araç içi Teknoloji',
-  'Günlük Tech',
+const formatTL = (usd) => Math.round(usd * 5).toLocaleString('tr-TR')
+
+const CATEGORY_TR = {
+  smartphones: 'Akıllı Telefon',
+  laptops: 'Laptop',
+  tablets: 'Tablet',
+  'mobile-accessories': 'Telefon Aksesuarları',
+  'mens-watches': 'Saat',
+  'womens-watches': 'Kadın Saat',
+  'sports-accessories': 'Spor',
+  'home-decoration': 'Ev & Dekor',
+  vehicle: 'Araç',
+  'kitchen-accessories': 'Mutfak',
+  sunglasses: 'Güneş Gözlüğü',
+  fragrances: 'Parfüm',
+}
+
+const FEATURED_SLUGS = [
+  'smartphones', 'laptops', 'tablets', 'mobile-accessories',
+  'mens-watches', 'sports-accessories', 'home-decoration', 'vehicle',
 ]
 
-export default function Header({ onLoginClick, onAdminClick, onProfileClick,onHomeClick,onFavClick,onCartClick,openLoginModal }) {
+const MEGA_MENU_DATA = [
+  {
+    slug: 'smartphones', label: 'Akıllı Telefon', icon: '📱',
+    groups: [
+      { title: 'Marka', items: ['Apple iPhone', 'Samsung Galaxy', 'Xiaomi', 'OnePlus', 'Huawei', 'OPPO'] },
+      { title: 'Özellikler', items: ['5G Destekli', 'Katlanabilir Ekran', 'Gaming Telefon', '108MP Kamera', 'Büyük Pil'] },
+    ],
+  },
+  {
+    slug: 'laptops', label: 'Laptop', icon: '💻',
+    groups: [
+      { title: 'Tür', items: ['Gaming Laptop', 'Ultrabook', 'İş Laptopu', '2-in-1 Laptop', 'Chromebook'] },
+      { title: 'Marka', items: ['Apple MacBook', 'Dell', 'HP', 'Lenovo', 'ASUS', 'MSI'] },
+    ],
+  },
+  {
+    slug: 'tablets', label: 'Tablet', icon: '📟',
+    groups: [
+      { title: 'Marka', items: ['Apple iPad', 'Samsung Galaxy Tab', 'Huawei MatePad', 'Lenovo Tab', 'Amazon Fire'] },
+      { title: 'Kullanım', items: ['Çizim Tableti', 'Eğitim Tableti', 'Oyun Tableti', 'E-Kitap Okuyucu'] },
+    ],
+  },
+  {
+    slug: 'mobile-accessories', label: 'Telefon Aksesuarları', icon: '🔌',
+    groups: [
+      { title: 'Ürün Tipi', items: ['Telefon Kılıfı', 'Ekran Koruyucu', 'Şarj Kablosu', 'Powerbank', 'Kablosuz Şarj'] },
+      { title: 'Uyumluluk', items: ['iPhone Aksesuarları', 'Samsung Aksesuarları', 'Xiaomi Aksesuarları', 'Universal'] },
+    ],
+  },
+  {
+    slug: 'mens-watches', label: 'Saat', icon: '⌚',
+    groups: [
+      { title: 'Tür', items: ['Akıllı Saat', 'Spor Saati', 'Klasik Saat', 'Kronograf', 'Dijital Saat'] },
+      { title: 'Marka', items: ['Apple Watch', 'Samsung Galaxy Watch', 'Garmin', 'Fitbit', 'Casio'] },
+    ],
+  },
+  {
+    slug: 'sports-accessories', label: 'Spor', icon: '⚽',
+    groups: [
+      { title: 'Kategori', items: ['Fitness', 'Outdoor', 'Su Sporları', 'Bisiklet', 'Koşu'] },
+      { title: 'Ürün', items: ['Spor Bilekliği', 'Nabız Ölçer', 'Aksiyon Kamera', 'GPS Tracker', 'Su Şişesi'] },
+    ],
+  },
+  {
+    slug: 'home-decoration', label: 'Ev & Dekor', icon: '🏠',
+    groups: [
+      { title: 'Kategori', items: ['Aydınlatma', 'Dekorasyon', 'Mutfak', 'Banyo', 'Yatak Odası'] },
+      { title: 'Akıllı Ev', items: ['Akıllı Ampul', 'Robot Süpürge', 'Akıllı Priz', 'Güvenlik Kamerası', 'Kapı Zili'] },
+    ],
+  },
+  {
+    slug: 'vehicle', label: 'Araç', icon: '🚗',
+    groups: [
+      { title: 'Ürün Tipi', items: ['Araç İçi Tutucu', 'Araç Şarj Cihazı', 'Dash Kamera', 'GPS Navigasyon', 'Araç Hoparlörü'] },
+      { title: 'Teknoloji', items: ['Araç İçi Ekran', 'Bluetooth Kiti', 'OBD-II Scanner', 'Park Sensörü', 'Geri Görüş Kamerası'] },
+    ],
+  },
+]
+
+export default function Header({ onLoginClick, onAdminClick, onProfileClick, onHomeClick, onFavClick, onCartClick, openLoginModal, onCategoryClick, onProductClick }) {
   const { user, profile } = useAuth()
   const [cartCount] = useState(0)
   const [favCount] = useState(0)
-  const [search, setSearch] = useState('')
 
+  // Search
+  const [search, setSearch] = useState('')
+  const [searchResults, setSearchResults] = useState([])
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [showDropdown, setShowDropdown] = useState(false)
+  const debounceRef = useRef(null)
+  const searchWrapperRef = useRef(null)
+
+  // Category nav
+  const [categories, setCategories] = useState(FEATURED_SLUGS)
+
+  // Mega menu
+  const [megaOpen, setMegaOpen] = useState(false)
+  const [activeGroup, setActiveGroup] = useState(MEGA_MENU_DATA[0].slug)
+  const megaRef = useRef(null)
+
+  useEffect(() => {
+    fetch('https://dummyjson.com/products/category-list')
+      .then(r => r.json())
+      .then(data => {
+        const filtered = data.filter(slug => FEATURED_SLUGS.includes(slug))
+        if (filtered.length > 0) setCategories(filtered)
+      })
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    const q = search.trim()
+    if (q.length < 2) { setSearchResults([]); setShowDropdown(false); return }
+    clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      setSearchLoading(true)
+      fetch(`https://dummyjson.com/products/search?q=${encodeURIComponent(q)}&limit=6&select=id,title,price,thumbnail`)
+        .then(r => r.json())
+        .then(data => { setSearchResults(data.products ?? []); setShowDropdown(true) })
+        .catch(() => {})
+        .finally(() => setSearchLoading(false))
+    }, 300)
+    return () => clearTimeout(debounceRef.current)
+  }, [search])
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (!searchWrapperRef.current?.contains(e.target)) setShowDropdown(false)
+      if (!megaRef.current?.contains(e.target)) setMegaOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  const handleResultClick = (id) => {
+    setShowDropdown(false)
+    setSearch('')
+    onProductClick(id)
+  }
+
+  const handleMegaCategoryClick = (slug) => {
+    setMegaOpen(false)
+    onCategoryClick(slug)
+  }
+
+  const activeMenuData = MEGA_MENU_DATA.find(c => c.slug === activeGroup)
 
   return (
     <header className="header">
@@ -25,20 +159,41 @@ export default function Header({ onLoginClick, onAdminClick, onProfileClick,onHo
           <Logo className="header-logo" />
         </button>
 
-        <div className="header-search">
-          <input
-            className="search-input"
-            type="text"
-            placeholder="Ürün arayın..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-          <button className="search-btn" aria-label="Ara">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-              <circle cx="11" cy="11" r="8" />
-              <path d="M21 21l-4.35-4.35" />
-            </svg>
-          </button>
+        <div className="search-wrapper" ref={searchWrapperRef}>
+          <div className="header-search">
+            <input
+              className="search-input"
+              type="text"
+              placeholder="Ürün arayın..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
+              onKeyDown={e => e.key === 'Escape' && setShowDropdown(false)}
+            />
+            <button className="search-btn" aria-label="Ara">
+              {searchLoading
+                ? <span className="search-spinner" />
+                : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="M21 21l-4.35-4.35" />
+                  </svg>
+              }
+            </button>
+          </div>
+
+          {showDropdown && searchResults.length > 0 && (
+            <div className="search-dropdown">
+              {searchResults.map(p => (
+                <button key={p.id} className="search-result-item" onClick={() => handleResultClick(p.id)}>
+                  <img src={p.thumbnail} alt={p.title} className="search-result-img" />
+                  <div className="search-result-info">
+                    <p className="search-result-name">{p.title}</p>
+                    <p className="search-result-price">{formatTL(p.price)} TL</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <nav className="header-actions">
@@ -95,11 +250,73 @@ export default function Header({ onLoginClick, onAdminClick, onProfileClick,onHo
         </nav>
       </div>
 
-      <nav className="header-cats">
-        {CATEGORIES.map(cat => (
-          <button key={cat} className="cat-link">{cat}</button>
-        ))}
-      </nav>
+      {/* ── ROW 2: Cats + Hamburger ── */}
+      <div className="header-cats-row" ref={megaRef}>
+        <button
+          className={`hamburger-btn ${megaOpen ? 'open' : ''}`}
+          onClick={() => setMegaOpen(o => !o)}
+          aria-label="Tüm Kategoriler"
+        >
+          <span className="hamburger-lines">
+            <span /><span /><span />
+          </span>
+          <span className="hamburger-label">Kategoriler</span>
+        </button>
+
+        <nav className="header-cats">
+          {categories.map(slug => (
+            <button key={slug} className="cat-link" onClick={() => onCategoryClick(slug)}>
+              {CATEGORY_TR[slug] ?? slug}
+            </button>
+          ))}
+        </nav>
+
+        {/* Mega Menu */}
+        {megaOpen && (
+          <div className="mega-menu">
+            {/* Left sidebar */}
+            <div className="mega-sidebar">
+              {MEGA_MENU_DATA.map(cat => (
+                <div
+                  key={cat.slug}
+                  className={`mega-cat-item ${activeGroup === cat.slug ? 'active' : ''}`}
+                  onMouseEnter={() => setActiveGroup(cat.slug)}
+                  onClick={() => handleMegaCategoryClick(cat.slug)}
+                >
+                  <span className="mega-cat-icon">{cat.icon}</span>
+                  <span className="mega-cat-label">{cat.label}</span>
+                  <svg className="mega-cat-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
+                </div>
+              ))}
+            </div>
+
+            {/* Right content */}
+            <div className="mega-content">
+              {activeMenuData?.groups.map(group => (
+                <div key={group.title} className="mega-group">
+                  <button
+                    className="mega-group-title"
+                    onClick={() => handleMegaCategoryClick(activeMenuData.slug)}
+                  >
+                    {group.title} →
+                  </button>
+                  {group.items.map(item => (
+                    <button
+                      key={item}
+                      className="mega-group-item"
+                      onClick={() => handleMegaCategoryClick(activeMenuData.slug)}
+                    >
+                      {item}
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </header>
   )
 }

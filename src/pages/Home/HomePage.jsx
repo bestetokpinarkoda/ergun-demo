@@ -81,13 +81,14 @@ export default function HomePage({ onProductClick }) {
   const [visibleCount, setVisibleCount] = useState(16)
 
   useEffect(() => {
-    Promise.all([
-      fetch('https://dummyjson.com/products?limit=100&select=id,title,price,thumbnail,rating,stock,category,discountPercentage,brand').then(r => r.json()),
-      fetch('https://dummyjson.com/products/category-list').then(r => r.json()),
-    ]).then(([productsData, catsData]) => {
-      setProducts(productsData.products)
-      setCategories(catsData.slice(0, 12))
-    }).finally(() => setLoading(false))
+    fetch('https://dummyjson.com/products?limit=100&select=id,title,price,thumbnail,rating,stock,category,discountPercentage,brand')
+      .then(r => r.json())
+      .then(data => {
+        setProducts(data.products)
+        const unique = [...new Set(data.products.map(p => p.category))].slice(0, 12)
+        setCategories(unique)
+      })
+      .finally(() => setLoading(false))
   }, [])
 
   const recommended = products.slice(0, 8)
