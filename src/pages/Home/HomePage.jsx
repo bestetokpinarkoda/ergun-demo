@@ -1,5 +1,55 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './HomePage.css'
+
+const CHAT_PRODUCTS = [
+  { id: 1, name: 'TWS Kablosuz Kulaklık',      tag: 'Bu fiyata kaçmaz!',    price: '249,90', img: '🎧', slug: 'tws-kulaklik' },
+  { id: 2, name: '10.000 mAh Powerbank',        tag: 'İnce ve güçlü!',       price: '179,90', img: '🔋', slug: 'powerbank' },
+  { id: 3, name: 'Araç içi Telefon Tutucu',     tag: 'Yolda sağlam durur.',  price: '125,90', img: '📱', slug: 'arac-tutucu' },
+  { id: 4, name: 'RGB Gaming Mouse',            tag: 'Oyuncular için ideal.', price: '199,90', img: '🖱️', slug: 'gaming-mouse' },
+  { id: 5, name: 'Hızlı Şarj Cihazı',          tag: 'Çok Satan',            price: '99,90',  img: '⚡', slug: 'sarj-cihazi' },
+  { id: 6, name: 'Mini Taşınabilir Hoparlör',   tag: 'Çok Satan',            price: '149,90', img: '🔊', slug: 'hoparlor' },
+  { id: 7, name: 'Akıllı LED Gece Lambası',     tag: 'Çok Satan',            price: '129,90', img: '💡', slug: 'gece-lambasi' },
+]
+
+const KEYWORD_MAP = [
+  { keywords: ['tws', 'kablosuz kulaklık', 'kulaklık', 'bluetooth kulaklık', 'kulaklik'], id: 1 },
+  { keywords: ['powerbank', 'güç bankası', 'taşınabilir şarj', 'şarj bankası'],           id: 2 },
+  { keywords: ['telefon tutucu', 'araç tutucu', 'araç içi tutucu'],                       id: 3 },
+  { keywords: ['mouse', 'gaming mouse', 'oyun faresi', 'rgb'],                             id: 4 },
+  { keywords: ['şarj cihazı', 'hızlı şarj', 'şarj aleti'],                               id: 5 },
+  { keywords: ['hoparlör', 'hoparlor', 'speaker', 'taşınabilir hoparlör'],                id: 6 },
+  { keywords: ['gece lambası', 'led lamba', 'gece lambasi', 'lamba'],                     id: 7 },
+]
+
+const GENERAL_REPLIES = [
+  { keywords: ['merhaba', 'selam', 'hey', 'nasılsın', 'nasilsin'],
+    text: 'Merhaba! 😊 Hangi ürünü arıyorsun? Sana en uygun seçeneği bulabilirim.' },
+  { keywords: ['teşekkür', 'tesekkur', 'sağ ol', 'eyvallah'],
+    text: 'Rica ederim! Başka bir konuda yardımcı olabilir miyim? 🙂' },
+  { keywords: ['en ucuz', 'ucuz', 'uygun fiyat', 'fiyat'],
+    text: 'En uygun fiyatlı ürünlerimiz:\n• Hızlı Şarj Cihazı — 99,90 TL\n• Araç içi Telefon Tutucu — 125,90 TL\n• Akıllı LED Gece Lambası — 129,90 TL\nHangisini göstereyim?' },
+  { keywords: ['ne var', 'ürünler', 'neler var', 'kategoriler'],
+    text: 'Şu an şu ürünlerimiz mevcut:\n🎧 TWS Kablosuz Kulaklık\n🔋 Powerbank\n📱 Araç Tutucu\n🖱️ Gaming Mouse\n⚡ Hızlı Şarj Cihazı\n🔊 Mini Hoparlör\n💡 LED Gece Lambası\nHangisini merak ediyorsun?' },
+]
+
+function getBotResponse(text) {
+  const lower = text.toLowerCase()
+  for (const entry of KEYWORD_MAP) {
+    if (entry.keywords.some(kw => lower.includes(kw))) {
+      const product = CHAT_PRODUCTS.find(p => p.id === entry.id)
+      return { type: 'product', text: 'Tabii! İşte aradığın ürün 👇', product }
+    }
+  }
+  for (const entry of GENERAL_REPLIES) {
+    if (entry.keywords.some(kw => lower.includes(kw))) {
+      return { type: 'text', text: entry.text }
+    }
+  }
+  return {
+    type: 'text',
+    text: 'Üzgünüm, tam olarak anlayamadım 🤔 Kulaklık, powerbank, şarj cihazı, mouse, hoparlör veya gece lambası hakkında soru sorabilirsin.',
+  }
+}
 
 const CATEGORY_TR = {
   beauty: 'Güzellik',
@@ -73,12 +123,27 @@ function ProductCard({ product, onClick }) {
 }
 
 export default function HomePage({ onProductClick }) {
-  const [chatOpen, setChatOpen] = useState(true)
+  const [chatOpen, setChatOpen] = useState(false)
+  const [messages, setMessages] = useState(() => {
+    try {
+      const saved = localStorage.getItem('ergun-chat-messages')
+      return saved ? JSON.parse(saved) : [{ from: 'bot', type: 'text', text: 'Merhaba! Sana nasıl yardımcı olabilirim? Nasılsın?' }]
+    } catch {
+      return [{ from: 'bot', type: 'text', text: 'Merhaba! Sana nasıl yardımcı olabilirim? Nasılsın?' }]
+    }
+  })
+  const [input, setInput] = useState('')
+  const messagesEndRef = useRef(null)
   const [products, setProducts] = useState([])
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeCategory, setActiveCategory] = useState('all')
   const [visibleCount, setVisibleCount] = useState(16)
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    localStorage.setItem('ergun-chat-messages', JSON.stringify(messages))
+  }, [messages])
 
   useEffect(() => {
     fetch('https://dummyjson.com/products?limit=100&select=id,title,price,thumbnail,rating,stock,category,discountPercentage,brand')
@@ -90,6 +155,19 @@ export default function HomePage({ onProductClick }) {
       })
       .finally(() => setLoading(false))
   }, [])
+
+  const handleSend = () => {
+    const trimmed = input.trim()
+    if (!trimmed) return
+    const userMsg = { from: 'user', type: 'text', text: trimmed }
+    const botMsg  = { from: 'bot', ...getBotResponse(trimmed) }
+    setMessages(prev => [...prev, userMsg, botMsg])
+    setInput('')
+  }
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') handleSend()
+  }
 
   const recommended = products.slice(0, 8)
   const bestsellers = [...products].sort((a, b) => b.rating - a.rating).slice(0, 6)
@@ -106,7 +184,7 @@ export default function HomePage({ onProductClick }) {
         <div className="hero-text">
           <p className="hero-sub">Ne alacağını bilmiyor musun? <strong>Ergün&apos;e sor!</strong></p>
           <h1 className="hero-title">Sor, Ergün söylesin.</h1>
-          <button className="btn-cta">Hemen Sor</button>
+          <button className="btn-cta" onClick={() => setChatOpen(true)}>Hemen Sor</button>
         </div>
 
         <div className="hero-mascot">
@@ -122,15 +200,12 @@ export default function HomePage({ onProductClick }) {
             </div>
           </div>
 
-          {chatOpen && (
-            <div className="chat-bubble">
-              <div className="chat-avatar">🤖</div>
-              <div className="chat-msg">
-                <p>Merhaba! Sana nasıl yardımcı olabilirim?</p>
-              </div>
-              <button className="chat-close" onClick={() => setChatOpen(false)}>×</button>
+          <div className="chat-bubble">
+            <div className="chat-avatar">🤖</div>
+            <div className="chat-msg">
+              <p>Merhaba! Sana nasıl yardımcı olabilirim?</p>
             </div>
-          )}
+          </div>
         </div>
 
         <div className="hero-stars">
@@ -150,7 +225,7 @@ export default function HomePage({ onProductClick }) {
           <section className="section">
             <div className="section-head">
               <h2>Ergün Öneriyor</h2>
-              <button className="btn-cta sm">Hemen Sor</button>
+              <button className="btn-cta sm" onClick={() => setChatOpen(true)}>Hemen Sor</button>
             </div>
             <div className="product-grid four">
               {recommended.map(p => (
@@ -236,6 +311,56 @@ export default function HomePage({ onProductClick }) {
           </section>
         </>
       )}
+
+      {!chatOpen && (
+        <button className="chat-fab" onClick={() => setChatOpen(true)} aria-label="Sohbeti aç">
+          🤖
+        </button>
+      )}
+
+      {chatOpen && (
+        <div className="chat-widget">
+          <div className="chat-widget-header">
+            <span>🤖 Ergün AI</span>
+            <button className="chat-widget-close" onClick={() => setChatOpen(false)}>×</button>
+          </div>
+          <div className="chat-widget-messages">
+            {messages.map((msg, i) => (
+              <div key={i} className={`chat-widget-row ${msg.from}`}>
+                {msg.from === 'bot' && <span className="chat-widget-avatar">🤖</span>}
+                <div className="chat-widget-bubble">
+                  <span style={{ whiteSpace: 'pre-line' }}>{msg.text}</span>
+                  {msg.type === 'product' && msg.product && (
+                    <a href={`#${msg.product.slug}`} className="chat-product-card">
+                      <span className="chat-product-img">{msg.product.img}</span>
+                      <div className="chat-product-info">
+                        <p className="chat-product-name">{msg.product.name}</p>
+                        <p className="chat-product-tag">{msg.product.tag}</p>
+                        <p className="chat-product-price">{msg.product.price} TL</p>
+                      </div>
+                      <span className="chat-product-link">İncele →</span>
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
+          <div className="chat-widget-input-area">
+            <input
+              type="text"
+              className="chat-widget-input"
+              placeholder="Mesajınızı yazın..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              autoFocus
+            />
+            <button className="chat-widget-send" onClick={handleSend}>Gönder</button>
+          </div>
+        </div>
+      )}
+
     </main>
   )
 }
