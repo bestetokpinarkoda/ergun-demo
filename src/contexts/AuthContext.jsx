@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 
 const AuthContext = createContext(null)
@@ -7,6 +7,8 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [loginModalOpen, setLoginModalOpen] = useState(false)
+  const pendingActionRef = useRef(null)
 
   const fetchProfile = useCallback(async (user) => {
     const { data, error } = await supabase
@@ -59,7 +61,17 @@ export function AuthProvider({ children }) {
       setSession(newSession)
       if (event === 'SIGNED_OUT' || !newSession?.user) {
         setProfile(null)
+        setLoginModalOpen(false)
+        pendingActionRef.current = null
         return
+      }
+      if (event === 'SIGNED_IN' && pendingActionRef.current) {
+        const pending = pendingActionRef.current
+        pendingActionRef.current = null
+        setLoginModalOpen(false)
+        setTimeout(() => pending(), 50)
+      } else {
+        setLoginModalOpen(false)
       }
       // Deadlock'u önlemek için supabase çağrılarını callback dışına al
       setTimeout(async () => {
@@ -126,6 +138,17 @@ export function AuthProvider({ children }) {
     return data
   }, [session])
 
+  const requireAuth = useCallback((callback) => {
+    if (session?.user) { callback() }
+    else { pendingActionRef.current = callback; setLoginModalOpen(true) }
+  }, [session])
+
+  const openLoginModal = useCallback(() => setLoginModalOpen(true), [])
+  const closeLoginModal = useCallback(() => {
+    setLoginModalOpen(false)
+    pendingActionRef.current = null
+  }, [])
+
   const value = {
     session,
     user: session?.user ?? null,
@@ -137,6 +160,10 @@ export function AuthProvider({ children }) {
     signInWithOAuth,
     signOut,
     updateProfile,
+    loginModalOpen,
+    openLoginModal,
+    closeLoginModal,
+    requireAuth,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

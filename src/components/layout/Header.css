@@ -13,7 +13,7 @@
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 0.75rem clamp(1rem, 4vw, 2.5rem);
+  padding: 0.75rem clamp(1rem, 4vw, 2.5rem) 0.75rem 1rem;
   border-bottom: 1px solid #f1f5f9;
 }
 
@@ -35,18 +35,24 @@
 }
 
 .logo-line1 {
-  font-size: 1.25rem;
-  font-weight: 900;
-  letter-spacing: 1px;
-  color: var(--primary);
+  font-family: 'Nunito', 'Inter', sans-serif;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  background: linear-gradient(135deg, var(--primary) 0%, #5b8def 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .logo-line2 {
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 3px;
-  color: var(--primary);
-  opacity: 0.65;
+  font-family: 'Nunito', 'Inter', sans-serif;
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 2.8px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  margin-top: 1px;
 }
 
 /* Search */
@@ -284,6 +290,12 @@
   align-items: center;
   justify-content: center;
   border: 2px solid #fff;
+}
+
+.action-badge--cart {
+  background: #f97316;
+  top: 2px;
+  right: 4px;
 }
 
 /* ── ROW 2: Category nav row ── */

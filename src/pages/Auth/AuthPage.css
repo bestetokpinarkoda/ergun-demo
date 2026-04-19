@@ -3,7 +3,8 @@
   flex: 1;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  min-height: 100svh;
+  height: 100svh;
+  overflow: hidden;
 }
 
 /* ── LEFT PANEL ───────────────────────────── */
@@ -16,6 +17,7 @@
   padding: clamp(2rem, 5vw, 4rem);
   overflow: hidden;
   color: #fff;
+  height: 100%;
 }
 
 .auth-back-left {
@@ -151,6 +153,7 @@
   background: #f8fafc;
   position: relative;
   overflow-y: auto;
+  height: 100%;
 }
 
 .auth-back-mobile {

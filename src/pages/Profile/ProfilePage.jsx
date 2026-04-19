@@ -587,12 +587,14 @@ const NAV_ITEMS = [
 
 /* ── Main ProfilePage ── */
 export default function ProfilePage({ onBack, initialTab }) {
-  const { user, updateUser, logout, savedAddresses, addAddress, removeAddress, editAddress } = useAuth()
+  const { user, profile, signOut, updateProfile } = useAuth()
   const { favCount } = useFav()
-  const { cartCount } = useCart()
+  const { cartCount, savedAddresses, addAddress, removeAddress, editAddress } = useCart()
   const [activeTab, setActiveTab] = useState(initialTab ?? 'account')
 
-  const handleLogout = () => { logout(); onBack() }
+  const mergedUser = { name: profile?.full_name, email: user?.email, phone: profile?.phone }
+  const updateUser = async (form) => { try { await updateProfile({ full_name: form.name, phone: form.phone }) } catch {} }
+  const handleLogout = () => { signOut(); onBack() }
 
   return (
     <main className="prof-page">
@@ -607,10 +609,10 @@ export default function ProfilePage({ onBack, initialTab }) {
       <div className="prof-container">
         <aside className="prof-sidebar">
           <div className="prof-sidebar-top">
-            <div className="prof-avatar-md">{user?.name?.charAt(0).toUpperCase() ?? 'K'}</div>
+            <div className="prof-avatar-md">{mergedUser.name?.charAt(0).toUpperCase() ?? user?.email?.charAt(0).toUpperCase() ?? 'K'}</div>
             <div className="prof-sb-info">
-              <p className="prof-sb-name">{user?.name}</p>
-              <p className="prof-sb-email">{user?.email}</p>
+              <p className="prof-sb-name">{mergedUser.name ?? user?.email?.split('@')[0]}</p>
+              <p className="prof-sb-email">{mergedUser.email}</p>
             </div>
           </div>
 
@@ -640,7 +642,7 @@ export default function ProfilePage({ onBack, initialTab }) {
         <div className="prof-content">
           {activeTab === 'account' && (
             <AccountTab
-              user={user}
+              user={mergedUser}
               updateUser={updateUser}
               favCount={favCount}
               cartCount={cartCount}

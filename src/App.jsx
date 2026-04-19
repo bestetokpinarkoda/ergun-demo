@@ -11,7 +11,9 @@ import FavoritesPage from './pages/Favorites/FavoritesPage'
 import ProfilePage from './pages/CustomerProfile/ProfilePage'
 import AdminDashboard from './pages/AdminDashboard/AdminDashboard'
 import CategoryPage from './pages/Category/CategoryPage'
+import ContactPage from './pages/Contact/ContactPage'
 import LoginModal from './components/ui/LoginModal'
+import ChatWidget from './components/ui/ChatWidget'
 import { AppProvider } from './store/AppContext'
 import { useAuth } from './contexts/AuthContext'
 import './App.css'
@@ -24,17 +26,19 @@ function App() {
   const [view, setView] = useState('home')
   const [selectedProductId, setSelectedProductId] = useState(null)
   const [selectedCategory, setSelectedCategory] = useState(null)
+  const [authTab, setAuthTab] = useState('login')
 
   const navigateTo = (v, params = {}) => {
     setView(v)
     if (params.productId !== undefined) setSelectedProductId(params.productId)
     if (params.category !== undefined) setSelectedCategory(params.category)
+    if (params.tab !== undefined) setAuthTab(params.tab)
     window.scrollTo(0, 0)
   }
 
   const renderView = () => {
     switch (view) {
-      case 'auth':            return <AuthPage onBack={() => navigateTo('home')} />
+      case 'auth':            return <AuthPage onBack={() => navigateTo('home')} initialTab={authTab} />
       case 'admin-auth':      return <AdminAuthPage onBack={() => navigateTo('home')} />
       case 'admin-dashboard': return <AdminDashboard onExit={() => navigateTo('home')} />
       case 'product':         return <ProductPage productId={selectedProductId} onBack={() => navigateTo('home')} onNavigate={navigateTo} />
@@ -42,6 +46,7 @@ function App() {
       case 'favorites':  return <FavoritesPage onBack={() => navigateTo('home')} onNavigate={navigateTo} />
       case 'profile':    return <ProfilePage onBack={() => navigateTo('home')} />
       case 'category':   return <CategoryPage category={selectedCategory} onBack={() => navigateTo('home')} onProductClick={(id) => navigateTo('product', { productId: id })} />
+      case 'contact':    return <ContactPage onBack={() => navigateTo('home')} />
       default:           return <HomePage onProductClick={(id) => navigateTo('product', { productId: id })} />
     }
   }
@@ -80,7 +85,15 @@ function App() {
             />
           )}
           {renderView()}
-          {showChrome && <Footer />}
+          {showChrome && (
+            <Footer
+              onLoginClick={() => navigateTo('auth', { tab: 'login' })}
+              onRegisterClick={() => navigateTo('auth', { tab: 'register' })}
+              onOrdersClick={() => user ? navigateTo('profile') : navigateTo('auth', { tab: 'login' })}
+              onContactClick={() => navigateTo('contact')}
+            />
+          )}
+          {showChrome && <ChatWidget onProductClick={(id) => navigateTo('product', { productId: id })} />}
         </div>
       )}
       <LoginModal />

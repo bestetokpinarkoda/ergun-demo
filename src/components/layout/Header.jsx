@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Logo from '../ui/Logo'
-import { useAuth } from '../../contexts/AuthContext'
+import { useAuth } from '../../store/AppContext'
+import { useCart, useFav } from '../../store/AppContext'
 import './Header.css'
 
 const formatTL = (usd) => Math.round(usd * 5).toLocaleString('tr-TR')
@@ -84,10 +85,10 @@ const MEGA_MENU_DATA = [
   },
 ]
 
-export default function Header({ onLoginClick, onAdminClick, onProfileClick, onHomeClick, onFavClick, onCartClick, openLoginModal, onCategoryClick, onProductClick }) {
-  const { user, profile } = useAuth()
-  const [cartCount] = useState(0)
-  const [favCount] = useState(0)
+export default function Header({ onLoginClick, onAdminClick, onProfileClick, onHomeClick, onFavClick, onCartClick, onCategoryClick, onProductClick }) {
+  const { user, profile, openLoginModal } = useAuth()
+  const { cartCount } = useCart()
+  const { favCount } = useFav()
 
   // Search
   const [search, setSearch] = useState('')
@@ -221,7 +222,7 @@ export default function Header({ onLoginClick, onAdminClick, onProfileClick, onH
               <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
             </svg>
             <span>Sepetim</span>
-            {cartCount > 0 && user && <span className="action-badge">{cartCount}</span>}
+            {cartCount > 0 && user && <span className="action-badge action-badge--cart">{cartCount}</span>}
           </button>
 
           {user ? (

@@ -1,39 +1,12 @@
-import { createContext, useContext, useRef, useState } from 'react'
+import { createContext, useContext, useState } from 'react'
 
 const CartContext = createContext(null)
 const FavContext = createContext(null)
-const AuthContext = createContext(null)
 
 export function AppProvider({ children }) {
   const [cartItems, setCartItems] = useState([])
   const [favItems, setFavItems] = useState([])
-  const [user, setUser] = useState(null)
   const [savedAddresses, setSavedAddresses] = useState([])
-  const [loginModalOpen, setLoginModalOpen] = useState(false)
-  const pendingActionRef = useRef(null)
-
-  const requireAuth = (callback) => {
-    if (user) { callback() }
-    else { pendingActionRef.current = callback; setLoginModalOpen(true) }
-  }
-
-  const login = (userData) => {
-    setUser(userData)
-    setLoginModalOpen(false)
-    if (pendingActionRef.current) { pendingActionRef.current(); pendingActionRef.current = null }
-  }
-
-  const logout = () => {
-    setUser(null)
-    setCartItems([])
-    setFavItems([])
-    setSavedAddresses([])
-  }
-
-  const updateUser = (data) => setUser(prev => ({ ...prev, ...data }))
-
-  const openLoginModal = () => setLoginModalOpen(true)
-  const closeLoginModal = () => { setLoginModalOpen(false); pendingActionRef.current = null }
 
   const addToCart = (product, qty = 1) => {
     setCartItems(prev => {
@@ -67,20 +40,14 @@ export function AppProvider({ children }) {
   const favCount = favItems.length
 
   return (
-    <AuthContext.Provider value={{
-      user, login, logout, updateUser, requireAuth,
-      openLoginModal, closeLoginModal, loginModalOpen,
-      savedAddresses, addAddress, removeAddress, editAddress,
-    }}>
-      <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateCartQty, cartCount }}>
-        <FavContext.Provider value={{ favItems, toggleFavorite, isFavorite, favCount }}>
-          {children}
-        </FavContext.Provider>
-      </CartContext.Provider>
-    </AuthContext.Provider>
+    <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateCartQty, cartCount, savedAddresses, addAddress, removeAddress, editAddress }}>
+      <FavContext.Provider value={{ favItems, toggleFavorite, isFavorite, favCount }}>
+        {children}
+      </FavContext.Provider>
+    </CartContext.Provider>
   )
 }
 
 export const useCart = () => useContext(CartContext)
 export const useFav = () => useContext(FavContext)
-export const useAuth = () => useContext(AuthContext)
+export { useAuth } from '../contexts/AuthContext'

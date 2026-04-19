@@ -4,21 +4,7 @@ import './LoginModal.css'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
-function fakeAuth(email, password, isRegister) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      if (isRegister) {
-        if (password.length < 6) { reject(new Error('Şifre en az 6 karakter olmalı.')); return }
-        resolve({ email, name: email.split('@')[0] })
-      } else {
-        if (password.length < 6) { reject(new Error('E-posta veya şifre hatalı.')); return }
-        resolve({ email, name: email.split('@')[0] })
-      }
-    }, 800)
-  })
-}
-
-function MiniForm({ isRegister, onSuccess }) {
+function MiniForm({ isRegister, onSuccess, onError }) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -32,10 +18,9 @@ function MiniForm({ isRegister, onSuccess }) {
     if (password.length < 6) { setError('Şifre en az 6 karakter olmalı.'); return }
     setLoading(true)
     try {
-      const user = await fakeAuth(email, password, isRegister)
-      onSuccess(isRegister ? { ...user, name } : user)
+      await onSuccess({ email, password, name })
     } catch (err) {
-      setError(err.message)
+      setError(err.message ?? 'Bir hata oluştu.')
     } finally {
       setLoading(false)
     }
@@ -84,10 +69,18 @@ function MiniForm({ isRegister, onSuccess }) {
 }
 
 export default function LoginModal() {
-  const { loginModalOpen, closeLoginModal, login } = useAuth()
+  const { loginModalOpen, closeLoginModal, signIn, signUp } = useAuth()
   const [tab, setTab] = useState('login')
 
   if (!loginModalOpen) return null
+
+  const handleLogin = async ({ email, password }) => {
+    await signIn({ email, password })
+  }
+
+  const handleRegister = async ({ email, password, name }) => {
+    await signUp({ email, password, fullName: name, role: 'customer' })
+  }
 
   return (
     <div className="lm-overlay" onClick={closeLoginModal}>
@@ -121,20 +114,8 @@ export default function LoginModal() {
         <MiniForm
           key={tab}
           isRegister={tab === 'register'}
-          onSuccess={(userData) => login(userData)}
+          onSuccess={tab === 'register' ? handleRegister : handleLogin}
         />
-
-        <div className="lm-divider"><span>veya hızlı giriş</span></div>
-
-        <div className="lm-sso">
-          <button
-            className="lm-sso-btn"
-            onClick={() => login({ email: 'demo@ergun.shop', name: 'Demo Kullanıcı' })}
-          >
-            <span>🧪</span>
-            Demo Hesabıyla Devam Et
-          </button>
-        </div>
       </div>
     </div>
   )

@@ -10,8 +10,8 @@ const FEATURES = [
   { icon: '💬', text: 'Ergün AI ile akıllı ürün önerileri' },
 ]
 
-export default function AuthPage({ onBack }) {
-  const [tab, setTab] = useState('login')
+export default function AuthPage({ onBack, initialTab = 'login' }) {
+  const [tab, setTab] = useState(initialTab)
 
   return (
     <main className="auth-page">

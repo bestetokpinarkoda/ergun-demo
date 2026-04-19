@@ -1,55 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useAuth, useCart, useFav } from '../../store/AppContext'
 import './HomePage.css'
-
-const CHAT_PRODUCTS = [
-  { id: 1, name: 'TWS Kablosuz Kulaklık',      tag: 'Bu fiyata kaçmaz!',    price: '249,90', img: '🎧', slug: 'tws-kulaklik' },
-  { id: 2, name: '10.000 mAh Powerbank',        tag: 'İnce ve güçlü!',       price: '179,90', img: '🔋', slug: 'powerbank' },
-  { id: 3, name: 'Araç içi Telefon Tutucu',     tag: 'Yolda sağlam durur.',  price: '125,90', img: '📱', slug: 'arac-tutucu' },
-  { id: 4, name: 'RGB Gaming Mouse',            tag: 'Oyuncular için ideal.', price: '199,90', img: '🖱️', slug: 'gaming-mouse' },
-  { id: 5, name: 'Hızlı Şarj Cihazı',          tag: 'Çok Satan',            price: '99,90',  img: '⚡', slug: 'sarj-cihazi' },
-  { id: 6, name: 'Mini Taşınabilir Hoparlör',   tag: 'Çok Satan',            price: '149,90', img: '🔊', slug: 'hoparlor' },
-  { id: 7, name: 'Akıllı LED Gece Lambası',     tag: 'Çok Satan',            price: '129,90', img: '💡', slug: 'gece-lambasi' },
-]
-
-const KEYWORD_MAP = [
-  { keywords: ['tws', 'kablosuz kulaklık', 'kulaklık', 'bluetooth kulaklık', 'kulaklik'], id: 1 },
-  { keywords: ['powerbank', 'güç bankası', 'taşınabilir şarj', 'şarj bankası'],           id: 2 },
-  { keywords: ['telefon tutucu', 'araç tutucu', 'araç içi tutucu'],                       id: 3 },
-  { keywords: ['mouse', 'gaming mouse', 'oyun faresi', 'rgb'],                             id: 4 },
-  { keywords: ['şarj cihazı', 'hızlı şarj', 'şarj aleti'],                               id: 5 },
-  { keywords: ['hoparlör', 'hoparlor', 'speaker', 'taşınabilir hoparlör'],                id: 6 },
-  { keywords: ['gece lambası', 'led lamba', 'gece lambasi', 'lamba'],                     id: 7 },
-]
-
-const GENERAL_REPLIES = [
-  { keywords: ['merhaba', 'selam', 'hey', 'nasılsın', 'nasilsin'],
-    text: 'Merhaba! 😊 Hangi ürünü arıyorsun? Sana en uygun seçeneği bulabilirim.' },
-  { keywords: ['teşekkür', 'tesekkur', 'sağ ol', 'eyvallah'],
-    text: 'Rica ederim! Başka bir konuda yardımcı olabilir miyim? 🙂' },
-  { keywords: ['en ucuz', 'ucuz', 'uygun fiyat', 'fiyat'],
-    text: 'En uygun fiyatlı ürünlerimiz:\n• Hızlı Şarj Cihazı — 99,90 TL\n• Araç içi Telefon Tutucu — 125,90 TL\n• Akıllı LED Gece Lambası — 129,90 TL\nHangisini göstereyim?' },
-  { keywords: ['ne var', 'ürünler', 'neler var', 'kategoriler'],
-    text: 'Şu an şu ürünlerimiz mevcut:\n🎧 TWS Kablosuz Kulaklık\n🔋 Powerbank\n📱 Araç Tutucu\n🖱️ Gaming Mouse\n⚡ Hızlı Şarj Cihazı\n🔊 Mini Hoparlör\n💡 LED Gece Lambası\nHangisini merak ediyorsun?' },
-]
-
-function getBotResponse(text) {
-  const lower = text.toLowerCase()
-  for (const entry of KEYWORD_MAP) {
-    if (entry.keywords.some(kw => lower.includes(kw))) {
-      const product = CHAT_PRODUCTS.find(p => p.id === entry.id)
-      return { type: 'product', text: 'Tabii! İşte aradığın ürün 👇', product }
-    }
-  }
-  for (const entry of GENERAL_REPLIES) {
-    if (entry.keywords.some(kw => lower.includes(kw))) {
-      return { type: 'text', text: entry.text }
-    }
-  }
-  return {
-    type: 'text',
-    text: 'Üzgünüm, tam olarak anlayamadım 🤔 Kulaklık, powerbank, şarj cihazı, mouse, hoparlör veya gece lambası hakkında soru sorabilirsin.',
-  }
-}
 
 const CATEGORY_TR = {
   beauty: 'Güzellik',
@@ -91,11 +42,24 @@ const CATEGORY_ICONS = {
 
 const formatTL = (usd) => Math.round(usd * 5).toLocaleString('tr-TR')
 
-function ProductCard({ product, onClick }) {
+function ProductCard({ product, onClick, onAddToCart, onToggleFav, isFav }) {
   const [imgError, setImgError] = useState(false)
+  const [justAdded, setJustAdded] = useState(false)
   const discountPct = product.discountPercentage > 1
     ? Math.round(product.discountPercentage)
     : null
+
+  const handleCart = (e) => {
+    e.stopPropagation()
+    onAddToCart(product)
+    setJustAdded(true)
+    setTimeout(() => setJustAdded(false), 1400)
+  }
+
+  const handleFav = (e) => {
+    e.stopPropagation()
+    onToggleFav(product)
+  }
 
   return (
     <div className="product-card" onClick={() => onClick(product.id)}>
@@ -117,57 +81,77 @@ function ProductCard({ product, onClick }) {
         <span className="mini-star">★</span>
         <span className="mini-rating">{product.rating?.toFixed(1)}</span>
       </div>
-      <p className="product-price"><strong>{formatTL(product.price)}</strong> TL</p>
+      <div className="product-card-footer">
+        <p className="product-price"><strong>{formatTL(product.price)}</strong> TL</p>
+        <div className="card-quick-actions">
+          <button
+            key={`fav-${isFav}`}
+            className={`card-quick-btn fav ${isFav ? 'active' : ''}`}
+            onClick={handleFav}
+            aria-label="Favorilere ekle"
+          >
+            <svg viewBox="0 0 24 24" fill={isFav ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </button>
+          <button
+            key={`cart-${justAdded}`}
+            className={`card-quick-btn cart ${justAdded ? 'added' : ''}`}
+            onClick={handleCart}
+            aria-label="Sepete ekle"
+          >
+            {justAdded
+              ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+            }
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
 
 export default function HomePage({ onProductClick }) {
-  const [chatOpen, setChatOpen] = useState(false)
-  const [messages, setMessages] = useState(() => {
-    try {
-      const saved = localStorage.getItem('ergun-chat-messages')
-      return saved ? JSON.parse(saved) : [{ from: 'bot', type: 'text', text: 'Merhaba! Sana nasıl yardımcı olabilirim? Nasılsın?' }]
-    } catch {
-      return [{ from: 'bot', type: 'text', text: 'Merhaba! Sana nasıl yardımcı olabilirim? Nasılsın?' }]
-    }
-  })
-  const [input, setInput] = useState('')
-  const messagesEndRef = useRef(null)
+  const { requireAuth } = useAuth()
+  const { addToCart } = useCart()
+  const { toggleFavorite, isFavorite } = useFav()
+
   const [products, setProducts] = useState([])
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeCategory, setActiveCategory] = useState('all')
   const [visibleCount, setVisibleCount] = useState(16)
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-    localStorage.setItem('ergun-chat-messages', JSON.stringify(messages))
-  }, [messages])
+  const handleAddToCart = (product) => {
+    requireAuth(() => addToCart({
+      id: product.id,
+      name: product.title,
+      price: formatTL(product.price),
+      img: product.thumbnail,
+      category: CATEGORY_TR[product.category] ?? product.category,
+    }))
+  }
+
+  const handleToggleFav = (product) => {
+    requireAuth(() => toggleFavorite({
+      id: product.id,
+      name: product.title,
+      price: formatTL(product.price),
+      img: product.thumbnail,
+      category: CATEGORY_TR[product.category] ?? product.category,
+    }))
+  }
 
   useEffect(() => {
     fetch('https://dummyjson.com/products?limit=100&select=id,title,price,thumbnail,rating,stock,category,discountPercentage,brand')
       .then(r => r.json())
       .then(data => {
         setProducts(data.products)
-        const unique = [...new Set(data.products.map(p => p.category))].slice(0, 12)
+        const unique = [...new Set(data.products.map(p => p.category))]
         setCategories(unique)
       })
       .finally(() => setLoading(false))
   }, [])
-
-  const handleSend = () => {
-    const trimmed = input.trim()
-    if (!trimmed) return
-    const userMsg = { from: 'user', type: 'text', text: trimmed }
-    const botMsg  = { from: 'bot', ...getBotResponse(trimmed) }
-    setMessages(prev => [...prev, userMsg, botMsg])
-    setInput('')
-  }
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') handleSend()
-  }
 
   const recommended = products.slice(0, 8)
   const bestsellers = [...products].sort((a, b) => b.rating - a.rating).slice(0, 6)
@@ -184,21 +168,15 @@ export default function HomePage({ onProductClick }) {
         <div className="hero-text">
           <p className="hero-sub">Ne alacağını bilmiyor musun? <strong>Ergün&apos;e sor!</strong></p>
           <h1 className="hero-title">Sor, Ergün söylesin.</h1>
-          <button className="btn-cta" onClick={() => setChatOpen(true)}>Hemen Sor</button>
+          <button className="btn-cta" onClick={() => window.dispatchEvent(new CustomEvent('openChat'))}>Hemen Sor</button>
         </div>
 
         <div className="hero-mascot">
-          <div className="mascot-body">
-            <div className="mascot-head">
-              <div className="mascot-eye left" />
-              <div className="mascot-eye right" />
-              <div className="mascot-mouth" />
-            </div>
-            <div className="mascot-ears">
-              <div className="mascot-ear" />
-              <div className="mascot-ear" />
-            </div>
-          </div>
+          <img
+            src="https://icons.iconarchive.com/icons/noctuline/wall-e/128/EVE-icon.png"
+            alt="EVE maskot"
+            className="mascot-robot"
+          />
 
           <div className="chat-bubble">
             <div className="chat-avatar">🤖</div>
@@ -224,12 +202,11 @@ export default function HomePage({ onProductClick }) {
           {/* ── ERGÜN ÖNERİYOR ── */}
           <section className="section">
             <div className="section-head">
-              <h2>Ergün Öneriyor</h2>
-              <button className="btn-cta sm" onClick={() => setChatOpen(true)}>Hemen Sor</button>
+              <h2>Ergün Senin İçin Öneriyor</h2>
             </div>
             <div className="product-grid four">
               {recommended.map(p => (
-                <ProductCard key={p.id} product={p} onClick={onProductClick} />
+                <ProductCard key={p.id} product={p} onClick={onProductClick} onAddToCart={handleAddToCart} onToggleFav={handleToggleFav} isFav={isFavorite(p.id)} />
               ))}
             </div>
           </section>
@@ -298,7 +275,7 @@ export default function HomePage({ onProductClick }) {
             </div>
             <div className="product-grid four">
               {visible.map(p => (
-                <ProductCard key={p.id} product={p} onClick={onProductClick} />
+                <ProductCard key={p.id} product={p} onClick={onProductClick} onAddToCart={handleAddToCart} onToggleFav={handleToggleFav} isFav={isFavorite(p.id)} />
               ))}
             </div>
             {visibleCount < filtered.length && (
@@ -310,55 +287,6 @@ export default function HomePage({ onProductClick }) {
             )}
           </section>
         </>
-      )}
-
-      {!chatOpen && (
-        <button className="chat-fab" onClick={() => setChatOpen(true)} aria-label="Sohbeti aç">
-          🤖
-        </button>
-      )}
-
-      {chatOpen && (
-        <div className="chat-widget">
-          <div className="chat-widget-header">
-            <span>🤖 Ergün AI</span>
-            <button className="chat-widget-close" onClick={() => setChatOpen(false)}>×</button>
-          </div>
-          <div className="chat-widget-messages">
-            {messages.map((msg, i) => (
-              <div key={i} className={`chat-widget-row ${msg.from}`}>
-                {msg.from === 'bot' && <span className="chat-widget-avatar">🤖</span>}
-                <div className="chat-widget-bubble">
-                  <span style={{ whiteSpace: 'pre-line' }}>{msg.text}</span>
-                  {msg.type === 'product' && msg.product && (
-                    <a href={`#${msg.product.slug}`} className="chat-product-card">
-                      <span className="chat-product-img">{msg.product.img}</span>
-                      <div className="chat-product-info">
-                        <p className="chat-product-name">{msg.product.name}</p>
-                        <p className="chat-product-tag">{msg.product.tag}</p>
-                        <p className="chat-product-price">{msg.product.price} TL</p>
-                      </div>
-                      <span className="chat-product-link">İncele →</span>
-                    </a>
-                  )}
-                </div>
-              </div>
-            ))}
-            <div ref={messagesEndRef} />
-          </div>
-          <div className="chat-widget-input-area">
-            <input
-              type="text"
-              className="chat-widget-input"
-              placeholder="Mesajınızı yazın..."
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              autoFocus
-            />
-            <button className="chat-widget-send" onClick={handleSend}>Gönder</button>
-          </div>
-        </div>
       )}
 
     </main>

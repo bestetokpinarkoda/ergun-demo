@@ -165,7 +165,7 @@ export default function ProductPage({ productId, onBack, onNavigate }) {
         <div className="breadcrumb-inner">
           <button className="bc-link" onClick={onBack}>Ana Sayfa</button>
           <span className="bc-sep">›</span>
-          <span className="bc-link muted">{categoryTR}</span>
+          <button className="bc-link" onClick={() => onNavigate('category', { category: product.category })}>{categoryTR}</button>
           <span className="bc-sep">›</span>
           <span className="bc-current">{product.title}</span>
         </div>
