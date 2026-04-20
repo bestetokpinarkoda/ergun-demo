@@ -221,7 +221,6 @@ export default function HomePage({ onProductClick }) {
           />
 
           <div className="chat-bubble">
-            <div className="chat-avatar">🤖</div>
             <div className="chat-msg">
               <p>Merhaba! Sana nasıl yardımcı olabilirim?</p>
             </div>
@@ -286,16 +285,7 @@ export default function HomePage({ onProductClick }) {
             </div>
             <div className="product-grid three">
               {bestsellers.map(p => (
-                <div key={p.id} className="product-card" onClick={() => onProductClick(p.id)}>
-                  <span className="badge-hot">⭐ Çok Satan</span>
-                  <BestsellerImg product={p} />
-                  <p className="product-name">{p.title}</p>
-                  <div className="product-rating-row">
-                    <span className="mini-star">★</span>
-                    <span className="mini-rating">{p.rating?.toFixed(1)}</span>
-                  </div>
-                  <p className="product-price"><strong>{formatTL(p.price)}</strong> TL</p>
-                </div>
+                <ProductCard key={p.id} product={p} onClick={onProductClick} onAddToCart={handleAddToCart} onToggleFav={handleToggleFav} isFav={isFavorite(p.id)} />
               ))}
             </div>
           </section>
@@ -335,19 +325,3 @@ export default function HomePage({ onProductClick }) {
   )
 }
 
-function BestsellerImg({ product }) {
-  const [imgError, setImgError] = useState(false)
-  return (
-    <div className="product-img-area">
-      {imgError
-        ? <span style={{ fontSize: '4rem' }}>📦</span>
-        : <img
-            src={product.thumbnail}
-            alt={product.title}
-            className="product-api-img"
-            onError={() => setImgError(true)}
-          />
-      }
-    </div>
-  )
-}

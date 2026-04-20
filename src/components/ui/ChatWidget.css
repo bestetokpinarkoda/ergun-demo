@@ -147,20 +147,28 @@
 /* Chat içi ürün kartı */
 .chat-product-card {
   display: flex;
-  align-items: center;
-  gap: 0.45rem;
+  flex-direction: column;
   margin-top: 0.45rem;
-  padding: 0.45rem 0.6rem;
   background: #f8fafc;
   border: 1.5px solid #e2e8f0;
   border-radius: 8px;
-  cursor: pointer;
+  overflow: hidden;
   transition: box-shadow 0.2s, border-color 0.2s;
 }
 .chat-product-card:hover {
   border-color: var(--primary);
   box-shadow: 0 2px 8px rgba(52, 92, 158, 0.12);
 }
+
+.chat-product-top {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.6rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.chat-product-top:hover { background: #eff4ff; }
 
 .chat-product-img {
   width: 52px;
@@ -206,6 +214,26 @@
   color: var(--primary);
   flex-shrink: 0;
   white-space: nowrap;
+}
+
+.chat-cart-btn {
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  background: var(--cta, #f59e0b);
+  color: #fff;
+  border: none;
+  border-top: 1px solid rgba(0,0,0,0.06);
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: background 0.15s;
+  text-align: center;
+}
+.chat-cart-btn:hover { background: #d97706; }
+.chat-cart-btn.added {
+  background: #16a34a;
+  cursor: default;
 }
 
 @media (max-width: 400px) {

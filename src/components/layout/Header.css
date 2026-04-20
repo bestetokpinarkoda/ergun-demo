@@ -452,6 +452,25 @@
 .mega-cat-item.active .mega-cat-chevron,
 .mega-cat-item:hover .mega-cat-chevron { opacity: 1; }
 
+.mega-sidebar-divider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 0.4rem 0;
+}
+
+.mega-cat-simple {
+  font-size: 0.82rem;
+  font-weight: 400;
+  color: #6b7280;
+  padding: 0.45rem 1rem;
+}
+.mega-cat-simple:hover {
+  background: #fff;
+  color: var(--primary);
+  border-left-color: var(--primary);
+  font-weight: 600;
+}
+
 .mega-content {
   flex: 1;
   display: flex;

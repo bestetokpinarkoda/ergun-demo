@@ -11,7 +11,7 @@ const CATEGORY_TR = {
   laptops: 'Laptop',
   tablets: 'Tablet',
   'mobile-accessories': 'Telefon Aksesuarları',
-  'mens-watches': 'Saat',
+  'mens-watches': 'Erkek Saat',
   'womens-watches': 'Kadın Saat',
   'sports-accessories': 'Spor',
   'home-decoration': 'Ev & Dekor',
@@ -19,11 +19,42 @@ const CATEGORY_TR = {
   'kitchen-accessories': 'Mutfak',
   sunglasses: 'Güneş Gözlüğü',
   fragrances: 'Parfüm',
+  beauty: 'Güzellik',
+  'skin-care': 'Cilt Bakımı',
+  'mens-shirts': 'Erkek Gömlek',
+  'mens-shoes': 'Erkek Ayakkabı',
+  'womens-shoes': 'Kadın Ayakkabı',
+  'womens-bags': 'Kadın Çanta',
+  'womens-dresses': 'Elbise',
+  'womens-jewellery': 'Takı',
+  furniture: 'Mobilya',
+  groceries: 'Market',
+  tops: 'Üst Giyim',
+  motorcycle: 'Motosiklet',
 }
 
 const FEATURED_SLUGS = [
-  'smartphones', 'laptops', 'tablets', 'mobile-accessories',
-  'mens-watches', 'sports-accessories', 'home-decoration', 'vehicle',
+  'home-decoration', 'smartphones', 'laptops', 'sports-accessories',
+  'mobile-accessories', 'tablets', 'groceries',
+]
+
+const OTHER_CATEGORIES = [
+  { slug: 'womens-watches', label: 'Kadın Saat', icon: '⌚' },
+  { slug: 'kitchen-accessories', label: 'Mutfak', icon: '🍳' },
+  { slug: 'sunglasses', label: 'Güneş Gözlüğü', icon: '🕶️' },
+  { slug: 'fragrances', label: 'Parfüm', icon: '🌸' },
+  { slug: 'beauty', label: 'Güzellik', icon: '💄' },
+  { slug: 'skin-care', label: 'Cilt Bakımı', icon: '✨' },
+  { slug: 'mens-shirts', label: 'Erkek Gömlek', icon: '👔' },
+  { slug: 'mens-shoes', label: 'Erkek Ayakkabı', icon: '👟' },
+  { slug: 'womens-shoes', label: 'Kadın Ayakkabı', icon: '👠' },
+  { slug: 'womens-bags', label: 'Kadın Çanta', icon: '👜' },
+  { slug: 'womens-dresses', label: 'Elbise', icon: '👗' },
+  { slug: 'womens-jewellery', label: 'Takı', icon: '💍' },
+  { slug: 'furniture', label: 'Mobilya', icon: '🛋️' },
+  { slug: 'groceries', label: 'Market', icon: '🛒' },
+  { slug: 'tops', label: 'Üst Giyim', icon: '👕' },
+  { slug: 'motorcycle', label: 'Motosiklet', icon: '🏍️' },
 ]
 
 const MEGA_MENU_DATA = [
@@ -106,15 +137,6 @@ export default function Header({ onLoginClick, onAdminClick, onProfileClick, onH
   const [activeGroup, setActiveGroup] = useState(MEGA_MENU_DATA[0].slug)
   const megaRef = useRef(null)
 
-  useEffect(() => {
-    fetch('https://dummyjson.com/products/category-list')
-      .then(r => r.json())
-      .then(data => {
-        const filtered = data.filter(slug => FEATURED_SLUGS.includes(slug))
-        if (filtered.length > 0) setCategories(filtered)
-      })
-      .catch(() => {})
-  }, [])
 
   useEffect(() => {
     const q = search.trim()
@@ -198,22 +220,23 @@ export default function Header({ onLoginClick, onAdminClick, onProfileClick, onH
         </div>
 
         <nav className="header-actions">
-          <button className="action-btn" onClick={onAdminClick}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <rect x="3" y="3" width="7" height="7" rx="1" />
-              <rect x="14" y="3" width="7" height="7" rx="1" />
-              <rect x="3" y="14" width="7" height="7" rx="1" />
-              <rect x="14" y="14" width="7" height="7" rx="1" />
-            </svg>
-            <span>Panel</span>
-          </button>
+          {!user && (
+            <button className="action-btn" onClick={onAdminClick}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <rect x="3" y="3" width="7" height="7" rx="1" />
+                <rect x="14" y="3" width="7" height="7" rx="1" />
+                <rect x="3" y="14" width="7" height="7" rx="1" />
+                <rect x="14" y="14" width="7" height="7" rx="1" />
+              </svg>
+              <span>Panel</span>
+            </button>
+          )}
 
           <button className="action-btn" onClick={user ? onFavClick : openLoginModal}>
-            <svg viewBox="0 0 24 24" fill={favCount > 0 && user ? 'var(--danger)' : 'none'} stroke="currentColor" strokeWidth="1.8">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
             </svg>
             <span>Favoriler</span>
-            {favCount > 0 && user && <span className="action-badge">{favCount}</span>}
           </button>
 
           <button className="action-btn" onClick={user ? onCartClick : openLoginModal}>
@@ -289,6 +312,17 @@ export default function Header({ onLoginClick, onAdminClick, onProfileClick, onH
                   <svg className="mega-cat-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M9 18l6-6-6-6" />
                   </svg>
+                </div>
+              ))}
+              <div className="mega-sidebar-divider" />
+              {OTHER_CATEGORIES.map(cat => (
+                <div
+                  key={cat.slug}
+                  className="mega-cat-item mega-cat-simple"
+                  onClick={() => handleMegaCategoryClick(cat.slug)}
+                >
+                  <span className="mega-cat-icon">{cat.icon}</span>
+                  <span className="mega-cat-label">{cat.label}</span>
                 </div>
               ))}
             </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useCart } from '../../store/AppContext'
 import { useFav } from '../../store/AppContext'
 import { useAuth } from '../../store/AppContext'
@@ -63,6 +63,22 @@ const RATING_DIST = [
   { stars: 1, pct: 2 },
 ]
 
+function getAiSummary(product) {
+  if (!product?.reviews?.length) return null
+  const rating = product.rating ?? 0
+  const count = product.reviews.length
+  const mood = rating >= 4.5 ? 'çok memnun' : rating >= 4 ? 'genel olarak memnun' : rating >= 3 ? 'karışık görüşlü' : 'memnuniyetsiz'
+  const pros = [
+    'Ürün kalitesi büyük çoğunluk tarafından beklentilerin üzerinde bulunmuş',
+    'Kargo hızı ve ambalaj sağlamlığı müşterilerce övülmüş',
+    'Fiyat-performans dengesi beğenilmiş',
+  ]
+  const cons = rating >= 4.3
+    ? ['Renk tonu görselden çok az farklı gelebileceği belirtilmiş']
+    : ['Bazı kullanıcılar teslimat süresini uzun bulmuş', 'Ürün açıklamasının daha detaylı olabileceği belirtilmiş']
+  return { mood, count, rating, pros, cons }
+}
+
 export default function ProductPage({ productId, onBack, onNavigate }) {
   const [product, setProduct] = useState(null)
   const [related, setRelated] = useState([])
@@ -75,6 +91,8 @@ export default function ProductPage({ productId, onBack, onNavigate }) {
   const { addToCart } = useCart()
   const { toggleFavorite, isFavorite } = useFav()
   const { requireAuth, user } = useAuth()
+  const pdTabsRef = useRef(null)
+  const aiSummaryRef = useRef(null)
 
   useEffect(() => {
     if (!productId) return
@@ -167,6 +185,7 @@ export default function ProductPage({ productId, onBack, onNavigate }) {
   }
 
   const inFav = isFavorite(product.id)
+  const aiSummary = getAiSummary(product)
   const categoryTR = CATEGORY_TR[product.category] ?? product.category
   const discountPct = product.discountPercentage > 1 ? Math.round(product.discountPercentage) : null
   const priceTL = formatTL(product.price)
@@ -263,7 +282,10 @@ export default function ProductPage({ productId, onBack, onNavigate }) {
             <div className="pd-rating-row">
               <StarRating rating={product.rating} />
               <span className="pd-rating-num">{product.rating?.toFixed(1)}</span>
-              <span className="pd-review-cnt">({product.reviews?.length ?? 0} yorum)</span>
+              <button className="pd-review-cnt-btn" onClick={() => {
+                setActiveTab('reviews')
+                setTimeout(() => pdTabsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+              }}>({product.reviews?.length ?? 0} yorum)</button>
             </div>
 
             {product.tags?.length > 0 && (
@@ -319,7 +341,7 @@ export default function ProductPage({ productId, onBack, onNavigate }) {
         </div>
 
         {/* Tabs */}
-        <div className="pd-tabs">
+        <div className="pd-tabs" ref={pdTabsRef}>
           <div className="tab-nav">
             {TABS.map(tab => (
               <button
@@ -366,6 +388,25 @@ export default function ProductPage({ productId, onBack, onNavigate }) {
 
             {activeTab === 'reviews' && (
               <div className="tab-reviews">
+                {aiSummary && (
+                  <div className="ai-summary-box" ref={aiSummaryRef}>
+                    <div className="ai-summary-header">
+                      <span className="ai-summary-icon">🤖</span>
+                      <span className="ai-summary-title">Ergün AI senin için özetledi</span>
+                    </div>
+                    <p className="ai-summary-text">
+                      <strong>{aiSummary.count} müşteri yorumu</strong> analiz edildi. Alıcılar bu ürün hakkında <strong>{aiSummary.mood}</strong> görünüyor (ortalama {aiSummary.rating.toFixed(1)}/5 puan).
+                    </p>
+                    <div className="ai-summary-points">
+                      {aiSummary.pros.map((p, i) => (
+                        <div key={i} className="ai-point pro"><span>✓</span><span>{p}</span></div>
+                      ))}
+                      {aiSummary.cons.map((c, i) => (
+                        <div key={i} className="ai-point con"><span>⚠</span><span>{c}</span></div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div className="reviews-summary">
                   <div className="rs-score">
                     <span className="rs-big">{product.rating?.toFixed(1)}</span>

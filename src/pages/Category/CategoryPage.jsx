@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from 'react'
+import { useAuth, useCart, useFav } from '../../store/AppContext'
 import './CategoryPage.css'
 
 const CATEGORY_TR = {
@@ -30,16 +31,29 @@ const COLOR_FILTERS = [
 ]
 
 const SORT_OPTIONS = [
-  { value: 'default',      label: 'Varsayılan' },
-  { value: 'price-asc',    label: 'Fiyat: Düşükten Yükseğe' },
-  { value: 'price-desc',   label: 'Fiyat: Yüksekten Düşüğe' },
-  { value: 'rating-desc',  label: 'En Yüksek Puan' },
-  { value: 'discount-desc',label: 'En Yüksek İndirim' },
+  { value: 'default',       label: 'Varsayılan' },
+  { value: 'price-asc',     label: 'Fiyat: Düşükten Yükseğe' },
+  { value: 'price-desc',    label: 'Fiyat: Yüksekten Düşüğe' },
+  { value: 'rating-desc',   label: 'En Yüksek Puan' },
+  { value: 'discount-desc', label: 'En Yüksek İndirim' },
 ]
 
-function ProductCard({ product, onClick }) {
+function ProductCard({ product, onClick, onAddToCart, onToggleFav, isFav }) {
   const [imgError, setImgError] = useState(false)
+  const [justAdded, setJustAdded] = useState(false)
   const discount = product.discountPercentage > 1 ? Math.round(product.discountPercentage) : null
+
+  const handleCart = (e) => {
+    e.stopPropagation()
+    onAddToCart(product)
+    setJustAdded(true)
+    setTimeout(() => setJustAdded(false), 1400)
+  }
+
+  const handleFav = (e) => {
+    e.stopPropagation()
+    onToggleFav(product)
+  }
 
   return (
     <div className="cat-product-card" onClick={() => onClick(product.id)}>
@@ -58,19 +72,67 @@ function ProductCard({ product, onClick }) {
           <span>{product.rating?.toFixed(1)}</span>
           <span className="cat-review-count">({product.reviews?.length ?? 0} yorum)</span>
         </div>
-        <p className="cat-product-price"><strong>{formatTL(product.price)}</strong> TL</p>
+        <div className="cat-product-footer">
+          <p className="cat-product-price"><strong>{formatTL(product.price)}</strong> TL</p>
+          <div className="card-quick-actions">
+            <button
+              className={`card-quick-btn fav ${isFav ? 'active' : ''}`}
+              onClick={handleFav}
+              aria-label="Favorilere ekle"
+            >
+              <svg viewBox="0 0 24 24" fill={isFav ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+              </svg>
+            </button>
+            <button
+              className={`card-quick-btn cart ${justAdded ? 'added' : ''}`}
+              onClick={handleCart}
+              aria-label="Sepete ekle"
+            >
+              {justAdded
+                ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+              }
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )
 }
 
 export default function CategoryPage({ category, onBack, onProductClick }) {
+  const { requireAuth } = useAuth()
+  const { addToCart } = useCart()
+  const { toggleFavorite, isFavorite } = useFav()
+
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [sortBy, setSortBy] = useState('default')
   const [filterBrands, setFilterBrands] = useState([])
   const [filterRating, setFilterRating] = useState(0)
   const [filterColors, setFilterColors] = useState([])
+  const [openSections, setOpenSections] = useState({ sort: true, rating: true, color: true, brand: true })
+
+  const handleAddToCart = (product) => {
+    requireAuth(() => addToCart({
+      id: product.id,
+      name: product.title,
+      price: formatTL(product.price),
+      img: product.thumbnail,
+      category: CATEGORY_TR[product.category] ?? product.category,
+    }))
+  }
+
+  const handleToggleFav = (product) => {
+    requireAuth(() => toggleFavorite({
+      id: product.id,
+      name: product.title,
+      price: formatTL(product.price),
+      img: product.thumbnail,
+      category: CATEGORY_TR[product.category] ?? product.category,
+    }))
+  }
 
   useEffect(() => {
     setLoading(true)
@@ -121,6 +183,9 @@ export default function CategoryPage({ category, onBack, onProductClick }) {
   const toggleColor = (label) =>
     setFilterColors(prev => prev.includes(label) ? prev.filter(c => c !== label) : [...prev, label])
 
+  const toggleSection = (key) =>
+    setOpenSections(prev => ({ ...prev, [key]: !prev[key] }))
+
   const clearAll = () => { setFilterBrands([]); setFilterRating(0); setFilterColors([]); setSortBy('default') }
 
   const hasFilters = filterBrands.length > 0 || filterRating > 0 || filterColors.length > 0 || sortBy !== 'default'
@@ -152,110 +217,127 @@ export default function CategoryPage({ category, onBack, onProductClick }) {
           </div>
         </div>
 
-        {!loading && products.length > 0 && (
-          <div className="cat-filters-bar">
-            {/* Sıralama */}
-            <div className="cat-filter-group">
-              <span className="cat-filter-label">Sırala</span>
-              <select
-                className="cat-sort-select"
-                value={sortBy}
-                onChange={e => setSortBy(e.target.value)}
-              >
-                {SORT_OPTIONS.map(o => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="cat-filter-divider" />
-
-            {/* Puan filtresi */}
-            <div className="cat-filter-group">
-              <span className="cat-filter-label">Değerlendirme</span>
-              <div className="cat-rating-options">
-                {[4, 3, 2].map(r => (
-                  <button
-                    key={r}
-                    className={`cat-rating-btn ${filterRating === r ? 'active' : ''}`}
-                    onClick={() => setFilterRating(prev => prev === r ? 0 : r)}
-                  >
-                    {'★'.repeat(r)} {r}+
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="cat-filter-divider" />
-
-            {/* Renk filtresi */}
-            <div className="cat-filter-group">
-              <span className="cat-filter-label">Renk</span>
-              <div className="cat-color-options">
-                {COLOR_FILTERS.map(c => (
-                  <button
-                    key={c.label}
-                    className={`cat-color-btn ${filterColors.includes(c.label) ? 'active' : ''}`}
-                    title={c.label}
-                    onClick={() => toggleColor(c.label)}
-                    style={{ '--swatch': c.hex }}
-                  >
-                    <span className="cat-color-swatch" />
-                    <span className="cat-color-name">{c.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {brands.length > 0 && (
-              <>
-                <div className="cat-filter-divider" />
-                {/* Marka filtresi */}
-                <div className="cat-filter-group cat-filter-group--brands">
-                  <span className="cat-filter-label">Marka</span>
-                  <div className="cat-brand-options">
-                    {brands.map(b => (
-                      <button
-                        key={b}
-                        className={`cat-brand-btn ${filterBrands.includes(b) ? 'active' : ''}`}
-                        onClick={() => toggleBrand(b)}
-                      >
-                        {b}
-                      </button>
-                    ))}
+        <div className="cat-content-area">
+          {!loading && products.length > 0 && (
+            <aside className="cat-sidebar">
+              <div className="cat-sidebar-section">
+                <button className="cat-sidebar-section-header" onClick={() => toggleSection('sort')}>
+                  <span>Sıralama</span>
+                  <span className={`cat-sidebar-chevron ${openSections.sort ? 'open' : ''}`}>▾</span>
+                </button>
+                {openSections.sort && (
+                  <div className="cat-sidebar-section-body">
+                    <select className="cat-sort-select" value={sortBy} onChange={e => setSortBy(e.target.value)}>
+                      {SORT_OPTIONS.map(o => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
                   </div>
+                )}
+              </div>
+
+              <div className="cat-sidebar-section">
+                <button className="cat-sidebar-section-header" onClick={() => toggleSection('rating')}>
+                  <span>Değerlendirme</span>
+                  <span className={`cat-sidebar-chevron ${openSections.rating ? 'open' : ''}`}>▾</span>
+                </button>
+                {openSections.rating && (
+                  <div className="cat-sidebar-section-body">
+                    <div className="cat-rating-options">
+                      {[4, 3, 2].map(r => (
+                        <button
+                          key={r}
+                          className={`cat-rating-btn ${filterRating === r ? 'active' : ''}`}
+                          onClick={() => setFilterRating(prev => prev === r ? 0 : r)}
+                        >
+                          {'★'.repeat(r)} {r}+
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="cat-sidebar-section">
+                <button className="cat-sidebar-section-header" onClick={() => toggleSection('color')}>
+                  <span>Renk</span>
+                  <span className={`cat-sidebar-chevron ${openSections.color ? 'open' : ''}`}>▾</span>
+                </button>
+                {openSections.color && (
+                  <div className="cat-sidebar-section-body">
+                    <div className="cat-color-options">
+                      {COLOR_FILTERS.map(c => (
+                        <button
+                          key={c.label}
+                          className={`cat-color-btn ${filterColors.includes(c.label) ? 'active' : ''}`}
+                          title={c.label}
+                          onClick={() => toggleColor(c.label)}
+                          style={{ '--swatch': c.hex }}
+                        >
+                          <span className="cat-color-swatch" />
+                          <span className="cat-color-name">{c.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {brands.length > 0 && (
+                <div className="cat-sidebar-section">
+                  <button className="cat-sidebar-section-header" onClick={() => toggleSection('brand')}>
+                    <span>Marka</span>
+                    <span className={`cat-sidebar-chevron ${openSections.brand ? 'open' : ''}`}>▾</span>
+                  </button>
+                  {openSections.brand && (
+                    <div className="cat-sidebar-section-body">
+                      <div className="cat-brand-options">
+                        {brands.map(b => (
+                          <button
+                            key={b}
+                            className={`cat-brand-btn ${filterBrands.includes(b) ? 'active' : ''}`}
+                            onClick={() => toggleBrand(b)}
+                          >
+                            {b}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </>
-            )}
+              )}
 
-            {hasFilters && (
-              <button className="cat-clear-btn" onClick={clearAll}>
-                Filtreleri Temizle ×
-              </button>
+              {hasFilters && (
+                <button className="cat-clear-btn" onClick={clearAll}>
+                  Filtreleri Temizle ×
+                </button>
+              )}
+            </aside>
+          )}
+
+          <div className="cat-products-area">
+            {loading ? (
+              <div className="cat-grid">
+                {[...Array(8)].map((_, i) => <div key={i} className="cat-skeleton" />)}
+              </div>
+            ) : displayProducts.length === 0 ? (
+              <div className="cat-empty">
+                <div className="cat-empty-icon">🔍</div>
+                <h2>{hasFilters ? 'Filtreye uyan ürün bulunamadı' : 'Bu kategoride henüz ürün yok'}</h2>
+                {hasFilters
+                  ? <button className="btn-outline" onClick={clearAll}>Filtreleri Temizle</button>
+                  : <button className="btn-outline" onClick={onBack}>Ana Sayfaya Dön</button>
+                }
+              </div>
+            ) : (
+              <div className="cat-grid">
+                {displayProducts.map(p => (
+                  <ProductCard key={p.id} product={p} onClick={onProductClick} onAddToCart={handleAddToCart} onToggleFav={handleToggleFav} isFav={isFavorite(p.id)} />
+                ))}
+              </div>
             )}
           </div>
-        )}
-
-        {loading ? (
-          <div className="cat-grid">
-            {[...Array(8)].map((_, i) => <div key={i} className="cat-skeleton" />)}
-          </div>
-        ) : displayProducts.length === 0 ? (
-          <div className="cat-empty">
-            <div className="cat-empty-icon">🔍</div>
-            <h2>{hasFilters ? 'Filtreye uyan ürün bulunamadı' : 'Bu kategoride henüz ürün yok'}</h2>
-            {hasFilters
-              ? <button className="btn-outline" onClick={clearAll}>Filtreleri Temizle</button>
-              : <button className="btn-outline" onClick={onBack}>Ana Sayfaya Dön</button>
-            }
-          </div>
-        ) : (
-          <div className="cat-grid">
-            {displayProducts.map(p => (
-              <ProductCard key={p.id} product={p} onClick={onProductClick} />
-            ))}
-          </div>
-        )}
+        </div>
       </div>
     </main>
   )

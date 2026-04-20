@@ -214,6 +214,20 @@
 .pd-rating-num { font-size: 0.92rem; font-weight: 700; color: #1e293b; }
 .pd-review-cnt { font-size: 0.82rem; color: var(--text-muted); }
 
+.pd-review-cnt-btn {
+  font-size: 0.82rem;
+  color: var(--primary);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: var(--font);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.15s;
+}
+.pd-review-cnt-btn:hover { color: var(--primary-dark); }
+
 /* Price Block */
 .pd-price-block {
   border-top: 1px solid #f1f5f9;
@@ -491,6 +505,56 @@
   color: #1e293b;
   font-weight: 500;
 }
+
+/* AI Summary Box */
+.ai-summary-box {
+  background: linear-gradient(135deg, #eff4ff 0%, #f0f9ff 100%);
+  border: 1.5px solid #bfdbfe;
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.ai-summary-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.ai-summary-icon { font-size: 1.3rem; }
+
+.ai-summary-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.ai-summary-text {
+  font-size: 0.875rem;
+  color: #374151;
+  line-height: 1.6;
+  margin-bottom: 0.875rem;
+}
+
+.ai-summary-points {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.ai-point {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.ai-point.pro { color: #15803d; }
+.ai-point.pro span:first-child { color: #16a34a; font-weight: 700; flex-shrink: 0; }
+.ai-point.con { color: #92400e; }
+.ai-point.con span:first-child { color: #d97706; font-weight: 700; flex-shrink: 0; }
 
 /* Reviews Tab */
 .reviews-summary {

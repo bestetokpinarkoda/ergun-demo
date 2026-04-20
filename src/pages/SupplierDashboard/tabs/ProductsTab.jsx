@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
+import { CATEGORIES } from '../../../data/categories'
 
 const EMPTY_FORM = {
   name: '', description: '', category: '', price: '', stock: '', image_url: '', status: 'active',
 }
-
+ 
 const fmtMoney = (n) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(n || 0)
-
+ 
 export default function ProductsTab({ supplier }) {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -14,7 +15,7 @@ export default function ProductsTab({ supplier }) {
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
-
+ 
   const load = useCallback(async () => {
     if (!supplier?.id) return
     setLoading(true)
@@ -27,9 +28,9 @@ export default function ProductsTab({ supplier }) {
     else setProducts(data || [])
     setLoading(false)
   }, [supplier?.id])
-
+ 
   useEffect(() => { load() }, [load])
-
+ 
   const openNew = () => { setEditing('new'); setForm(EMPTY_FORM); setError(null) }
   const openEdit = (p) => {
     setEditing(p.id)
@@ -45,7 +46,7 @@ export default function ProductsTab({ supplier }) {
     setError(null)
   }
   const closeModal = () => { setEditing(null); setForm(EMPTY_FORM) }
-
+ 
   const handleSave = async (e) => {
     e.preventDefault()
     setError(null)
@@ -81,14 +82,14 @@ export default function ProductsTab({ supplier }) {
       setSaving(false)
     }
   }
-
+ 
   const handleDelete = async (id) => {
     if (!confirm('Bu ürünü silmek istediğine emin misin?')) return
     const { error } = await supabase.from('products').delete().eq('id', id)
     if (error) return alert(error.message)
     load()
   }
-
+ 
   return (
     <div className="sup-products">
       <header className="sup-products-header">
@@ -98,7 +99,7 @@ export default function ProductsTab({ supplier }) {
         </div>
         <button className="sup-primary-btn" onClick={openNew}>+ Yeni Ürün</button>
       </header>
-
+ 
       {loading ? (
         <div className="sup-dash-loading">Yükleniyor...</div>
       ) : (
@@ -106,14 +107,13 @@ export default function ProductsTab({ supplier }) {
           {products.length === 0 && (
             <div className="sup-demo-banner">
               <span>✨</span>
-              <p>Henüz ürün eklemedin. Aşağıda nasıl görüneceğine dair örnek ürünler gösteriliyor.</p>
+              <p>Henüz ürün eklemedin. Buradan yeni ürünler eklediğinde listene düşecek.</p>
             </div>
           )}
-          <div className="sup-product-grid">
-            {(products.length > 0 ? products : DEMO_PRODUCTS).map(p => {
-              const isDemo = products.length === 0
-              return (
-                <article key={p.id} className={`sup-product-card${isDemo ? ' is-demo' : ''}`}>
+          {products.length > 0 && (
+            <div className="sup-product-grid">
+              {products.map(p => (
+                <article key={p.id} className="sup-product-card">
                   <div className="sup-product-img">
                     {p.image_url ? <img src={p.image_url} alt={p.name} /> : <span>📦</span>}
                   </div>
@@ -130,23 +130,19 @@ export default function ProductsTab({ supplier }) {
                       </span>
                     </div>
                     <footer className="sup-product-actions">
-                      {isDemo ? (
-                        <span className="sup-demo-tag">Örnek</span>
-                      ) : (
-                        <>
-                          <button className="sup-link-btn" onClick={() => openEdit(p)}>Düzenle</button>
-                          <button className="sup-link-btn sup-danger" onClick={() => handleDelete(p.id)}>Sil</button>
-                        </>
-                      )}
+                      <>
+                        <button className="sup-link-btn" onClick={() => openEdit(p)}>Düzenle</button>
+                        <button className="sup-link-btn sup-danger" onClick={() => handleDelete(p.id)}>Sil</button>
+                      </>
                     </footer>
                   </div>
                 </article>
-              )
-            })}
-          </div>
+              ))}
+            </div>
+          )}
         </>
       )}
-
+ 
       {editing && (
         <div className="sup-modal-backdrop" onClick={closeModal}>
           <div className="sup-modal" onClick={(e) => e.stopPropagation()}>
@@ -163,8 +159,11 @@ export default function ProductsTab({ supplier }) {
               <div className="sup-form-row">
                 <div className="sup-form-group">
                   <label>Kategori</label>
-                  <input value={form.category} placeholder="Elektronik, Giyim..."
-                    onChange={(e) => setForm({ ...form, category: e.target.value })} />
+                  <select value={form.category}
+                    onChange={(e) => setForm({ ...form, category: e.target.value })}>
+                    <option value="">Seçiniz...</option>
+                    {CATEGORIES.map(c => <option key={c.slug} value={c.label}>{c.label}</option>)}
+                  </select>
                 </div>
                 <div className="sup-form-group">
                   <label>Durum</label>

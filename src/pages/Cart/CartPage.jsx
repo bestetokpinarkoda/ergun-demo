@@ -113,6 +113,7 @@ function OrderSummary({ items, onNext, nextLabel, loading, couponApplied, step, 
           />
           <button
             className="coupon-btn"
+            disabled={!coupon.trim()}
             onClick={() => {
               if (coupon === 'ERGUN10') { setCouponOk(true) }
             }}
