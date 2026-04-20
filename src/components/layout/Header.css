@@ -221,6 +221,20 @@
   background: #f1f5f9;
 }
 
+.action-btn--become-supplier {
+  background: var(--primary);
+  color: #fff;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.action-btn--become-supplier:hover {
+  background: var(--primary-dark, #1d4ed8);
+  color: #fff;
+}
+
 .action-btn.is-user-logged {
   flex-direction: row;
   gap: 10px;

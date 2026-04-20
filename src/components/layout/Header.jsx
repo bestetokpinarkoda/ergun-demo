@@ -85,8 +85,8 @@ const MEGA_MENU_DATA = [
   },
 ]
 
-export default function Header({ onLoginClick, onAdminClick, onProfileClick, onHomeClick, onFavClick, onCartClick, onCategoryClick, onProductClick }) {
-  const { user, profile, openLoginModal } = useAuth()
+export default function Header({ onLoginClick, onAdminClick, onProfileClick, onHomeClick, onFavClick, onCartClick, onCategoryClick, onProductClick, onBecomeSupplierClick }) {
+  const { user, profile, role, openLoginModal } = useAuth()
   const { cartCount } = useCart()
   const { favCount } = useFav()
 
@@ -198,15 +198,21 @@ export default function Header({ onLoginClick, onAdminClick, onProfileClick, onH
         </div>
 
         <nav className="header-actions">
-          <button className="action-btn" onClick={onAdminClick}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <rect x="3" y="3" width="7" height="7" rx="1" />
-              <rect x="14" y="3" width="7" height="7" rx="1" />
-              <rect x="3" y="14" width="7" height="7" rx="1" />
-              <rect x="14" y="14" width="7" height="7" rx="1" />
-            </svg>
-            <span>Panel</span>
-          </button>
+          {user && role === 'customer' ? (
+            <button className="action-btn action-btn--become-supplier" onClick={onBecomeSupplierClick}>
+              <span>Satıcı Ol</span>
+            </button>
+          ) : (
+            <button className="action-btn" onClick={onAdminClick}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <rect x="3" y="3" width="7" height="7" rx="1" />
+                <rect x="14" y="3" width="7" height="7" rx="1" />
+                <rect x="3" y="14" width="7" height="7" rx="1" />
+                <rect x="14" y="14" width="7" height="7" rx="1" />
+              </svg>
+              <span>Panel</span>
+            </button>
+          )}
 
           <button className="action-btn" onClick={user ? onFavClick : openLoginModal}>
             <svg viewBox="0 0 24 24" fill={favCount > 0 && user ? 'var(--danger)' : 'none'} stroke="currentColor" strokeWidth="1.8">
