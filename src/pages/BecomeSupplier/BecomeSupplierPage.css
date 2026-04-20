@@ -1,6 +1,7 @@
 .bs-page {
   min-height: 100vh;
   background: var(--bg);
+  padding-top: 105px;
   padding-bottom: 80px;
 }
 
