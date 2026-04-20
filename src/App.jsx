@@ -10,6 +10,7 @@ import CartPage from './pages/Cart/CartPage'
 import FavoritesPage from './pages/Favorites/FavoritesPage'
 import ProfilePage from './pages/CustomerProfile/ProfilePage'
 import AdminDashboard from './pages/AdminDashboard/AdminDashboard'
+import SupplierDashboard from './pages/SupplierDashboard/SupplierDashboard'
 import CategoryPage from './pages/Category/CategoryPage'
 import ContactPage from './pages/Contact/ContactPage'
 import LoginModal from './components/ui/LoginModal'
@@ -18,7 +19,7 @@ import { AppProvider } from './store/AppContext'
 import { useAuth } from './contexts/AuthContext'
 import './App.css'
 
-const CHROMELESS_VIEWS = new Set(['auth', 'admin-auth', 'admin-dashboard'])
+const CHROMELESS_VIEWS = new Set(['auth', 'admin-auth', 'admin-dashboard', 'supplier-dashboard'])
 
 function App() {
   const { user, role } = useAuth()
@@ -45,6 +46,7 @@ function App() {
       case 'auth':            return <AuthPage onBack={() => navigateTo('home')} initialTab={authTab} />
       case 'admin-auth':      return <AdminAuthPage onBack={() => navigateTo('home')} />
       case 'admin-dashboard': return <AdminDashboard onExit={() => navigateTo('home')} />
+      case 'supplier-dashboard': return <SupplierDashboard onExit={() => navigateTo('home')} />
       case 'product':         return <ProductPage productId={selectedProductId} onBack={() => navigateTo('home')} onNavigate={navigateTo} />
       case 'cart':       return <CartPage onBack={() => navigateTo('home')} onNavigate={navigateTo} />
       case 'favorites':  return <FavoritesPage onBack={() => navigateTo('home')} onNavigate={navigateTo} />
@@ -56,16 +58,21 @@ function App() {
   }
 
   useEffect(() => {
-    if (!user && (view === 'profile' || view === 'admin-dashboard')) {
+    if (!user && (view === 'profile' || view === 'admin-dashboard' || view === 'supplier-dashboard')) {
       setView('home')
       return
     }
     if (user && (view === 'auth' || view === 'admin-auth')) {
-      setView(role === 'admin' ? 'admin-dashboard' : 'home')
+      if (role === 'admin') setView('admin-dashboard')
+      else if (role === 'supplier') setView('supplier-dashboard')
+      else setView('home')
       return
     }
     if (role === 'admin' && view === 'home') {
       setView('admin-dashboard')
+    }
+    if (role === 'supplier' && view === 'home') {
+      setView('supplier-dashboard')
     }
   }, [user, role, view])
 

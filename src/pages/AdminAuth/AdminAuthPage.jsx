@@ -1,7 +1,11 @@
+import { useState } from 'react'
 import AdminRegisterForm from './AdminRegisterForm'
+import SupplierLoginForm from './SupplierLoginForm'
 import './AdminAuthPage.css'
 
-export default function AdminAuthPage({ onBack }) {
+export default function AdminAuthPage({ onBack, initialTab = 'login' }) {
+  const [tab, setTab] = useState(initialTab)
+
   return (
     <main className="admin-auth-page">
       <div className="admin-auth-container">
@@ -23,8 +27,25 @@ export default function AdminAuthPage({ onBack }) {
           </p>
         </div>
 
+        <div className="admin-auth-tabs">
+          <button
+            type="button"
+            className={`admin-auth-tab ${tab === 'login' ? 'is-active' : ''}`}
+            onClick={() => setTab('login')}
+          >
+            Giriş Yap
+          </button>
+          <button
+            type="button"
+            className={`admin-auth-tab ${tab === 'register' ? 'is-active' : ''}`}
+            onClick={() => setTab('register')}
+          >
+            Satıcı Başvurusu
+          </button>
+        </div>
+
         <div className="admin-auth-form-wrap">
-          <AdminRegisterForm />
+          {tab === 'login' ? <SupplierLoginForm /> : <AdminRegisterForm />}
         </div>
       </div>
     </main>

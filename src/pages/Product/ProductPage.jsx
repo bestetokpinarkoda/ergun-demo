@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useCart } from '../../store/AppContext'
 import { useFav } from '../../store/AppContext'
 import { useAuth } from '../../store/AppContext'
+import { supabase } from '../../lib/supabase'
 import './ProductPage.css'
 
 const CATEGORY_TR = {
@@ -82,16 +83,59 @@ export default function ProductPage({ productId, onBack, onNavigate }) {
     setActiveImg(null)
     setQty(1)
     setActiveTab('description')
-    fetch(`https://dummyjson.com/products/${productId}`)
-      .then(r => r.json())
-      .then(data => {
-        setProduct(data)
-        setActiveImg(data.thumbnail)
-        return fetch(`https://dummyjson.com/products/category/${data.category}?limit=6`)
-          .then(r => r.json())
-          .then(rel => setRelated(rel.products.filter(p => p.id !== data.id).slice(0, 4)))
-      })
-      .finally(() => setLoading(false))
+    
+    async function loadProduct() {
+      try {
+        // ID formatına göre nereden çekeceğimize karar verelim
+        const isSupabaseId = String(productId).length > 10 // UUID'ler uzundur
+        
+        if (isSupabaseId) {
+          // Supabase'den çek
+          const { data, error } = await supabase
+            .from('products')
+            .select('*, supplier:suppliers(company_name)')
+            .eq('id', productId)
+            .single()
+            
+          if (!error && data) {
+            const formattedProduct = {
+              id: data.id,
+              title: data.name,
+              description: data.description || 'Bu ürün hakkında henüz açıklama girilmemiş.',
+              price: Number(data.price) / 5,
+              thumbnail: data.image_url || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&auto=format&fit=crop',
+              images: [data.image_url || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&auto=format&fit=crop'],
+              rating: 5.0,
+              stock: data.stock,
+              category: data.category || 'Diğer',
+              brand: data.supplier?.company_name || 'Yerel Satıcı',
+              reviews: [],
+              isSupabaseProduct: true,
+              supplier_id: data.supplier_id || null,
+            }
+            setProduct(formattedProduct)
+            setActiveImg(formattedProduct.thumbnail)
+            setRelated([]) // Satıcı ürünlerinde şimdilik related göstermiyoruz
+          }
+        } else {
+          // DummyJSON'dan çek
+          const res = await fetch(`https://dummyjson.com/products/${productId}`)
+          const data = await res.json()
+          setProduct(data)
+          setActiveImg(data.thumbnail)
+          
+          const relRes = await fetch(`https://dummyjson.com/products/category/${data.category}?limit=6`)
+          const relData = await relRes.json()
+          setRelated(relData.products.filter(p => p.id !== data.id).slice(0, 4))
+        }
+      } catch (err) {
+        console.error('Ürün yüklenirken hata:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    loadProduct()
   }, [productId])
 
   if (loading) {
@@ -137,6 +181,8 @@ export default function ProductPage({ productId, onBack, onNavigate }) {
     price: priceTL,
     img: product.thumbnail,
     category: categoryTR,
+    supplierId: product.supplier_id || null,
+    isSupabaseProduct: !!product.isSupabaseProduct,
   }
 
   const handleAddToCart = () => {

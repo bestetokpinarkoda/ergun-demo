@@ -58,13 +58,24 @@ function StepIndicator({ step }) {
 }
 
 /* ─── Order Summary ──────────────────────── */
-function OrderSummary({ items, onNext, nextLabel, loading, couponApplied, step }) {
+function OrderSummary({ items, onNext, nextLabel, loading, couponApplied, step, payment }) {
   const [coupon, setCoupon] = useState('')
   const [couponOk, setCouponOk] = useState(couponApplied)
+  
   const subtotal = items.reduce((s, i) => s + parsePrice(i.price) * i.qty, 0)
   const shipping = subtotal >= 1000 ? 0 : 79.90
   const discount = couponOk ? Math.round(subtotal * 0.1) : 0
-  const total = subtotal + shipping - discount
+  
+  // Taksit vade farkını hesapla
+  let installmentFee = 0
+  if (payment && payment.method === 'card' && payment.installment > 1) {
+    const selectedInst = INSTALLMENTS.find(i => i.months === payment.installment)
+    if (selectedInst) {
+      installmentFee = Math.round((subtotal + shipping - discount) * selectedInst.rate)
+    }
+  }
+
+  const total = subtotal + shipping - discount + installmentFee
 
   return (
     <div className="order-summary">
@@ -87,6 +98,7 @@ function OrderSummary({ items, onNext, nextLabel, loading, couponApplied, step }
         <div className="os-row"><span>Ara Toplam</span><span>{fmtTL(subtotal)} TL</span></div>
         <div className="os-row"><span>Kargo</span><span className={shipping === 0 ? 'os-free' : ''}>{shipping === 0 ? 'Ücretsiz' : `${fmtTL(shipping)} TL`}</span></div>
         {discount > 0 && <div className="os-row discount"><span>Kupon İndirimi</span><span>-{fmtTL(discount)} TL</span></div>}
+        {installmentFee > 0 && <div className="os-row"><span>Vade Farkı</span><span>+{fmtTL(installmentFee)} TL</span></div>}
         <div className="os-divider" />
         <div className="os-row total"><span>Toplam</span><span>{fmtTL(total)} TL</span></div>
       </div>
@@ -633,7 +645,14 @@ export default function CartPage({ onBack, onNavigate }) {
 
   const subtotal = cartItems.reduce((s, i) => s + parsePrice(i.price) * i.qty, 0)
   const shipping = subtotal >= 1000 ? 0 : 79.90
-  const total = subtotal + shipping
+  let installmentFee = 0
+  if (payment.method === 'card' && payment.installment > 1) {
+    const selectedInst = INSTALLMENTS.find(i => i.months === payment.installment)
+    if (selectedInst) {
+      installmentFee = Math.round((subtotal + shipping) * selectedInst.rate)
+    }
+  }
+  const total = subtotal + shipping + installmentFee
 
   useEffect(() => {
     if (!user) {
@@ -708,6 +727,7 @@ export default function CartPage({ onBack, onNavigate }) {
 
         const items = cartItems.map(i => {
           const unit = parsePrice(i.price)
+          const isSupa = i.isSupabaseProduct || String(i.id).length > 10
           return {
             order_id: orderRow.id,
             product_name: i.name,
@@ -715,6 +735,8 @@ export default function CartPage({ onBack, onNavigate }) {
             quantity: i.qty,
             unit_price: unit,
             total_price: unit * i.qty,
+            product_id: isSupa ? i.id : null,
+            supplier_id: isSupa ? (i.supplierId || null) : null,
           }
         })
         const { error: itemsErr } = await supabase.from('order_items').insert(items)
@@ -825,6 +847,8 @@ export default function CartPage({ onBack, onNavigate }) {
               <OrderSummary
                 items={cartItems}
                 step={step}
+                payment={payment}
+                loading={placing}
                 onNext={step < 3 ? () => requireAuth(() => setStep(s => s + 1)) : placeOrder}
                 nextLabel={step === 3 ? 'Siparişi Tamamla' : 'Devam Et →'}
               />

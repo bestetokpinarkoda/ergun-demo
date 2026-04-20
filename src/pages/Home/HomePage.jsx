@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth, useCart, useFav } from '../../store/AppContext'
+import { supabase } from '../../lib/supabase'
 import './HomePage.css'
 
 const CATEGORY_TR = {
@@ -129,6 +130,8 @@ export default function HomePage({ onProductClick }) {
       price: formatTL(product.price),
       img: product.thumbnail,
       category: CATEGORY_TR[product.category] ?? product.category,
+      supplierId: product.supplier_id || null,
+      isSupabaseProduct: !!product.isSupabaseProduct,
     }))
   }
 
@@ -139,18 +142,57 @@ export default function HomePage({ onProductClick }) {
       price: formatTL(product.price),
       img: product.thumbnail,
       category: CATEGORY_TR[product.category] ?? product.category,
+      supplierId: product.supplier_id || null,
+      isSupabaseProduct: !!product.isSupabaseProduct,
     }))
   }
 
   useEffect(() => {
-    fetch('https://dummyjson.com/products?limit=100&select=id,title,price,thumbnail,rating,stock,category,discountPercentage,brand')
-      .then(r => r.json())
-      .then(data => {
-        setProducts(data.products)
-        const unique = [...new Set(data.products.map(p => p.category))]
+    async function loadData() {
+      setLoading(true)
+      try {
+        // 1. DummyJSON'dan örnek ürünleri çek
+        const dummyRes = await fetch('https://dummyjson.com/products?limit=50&select=id,title,price,thumbnail,rating,stock,category,discountPercentage,brand')
+        const dummyData = await dummyRes.json()
+        let allProducts = dummyData.products || []
+
+        // 2. Supabase'den Satıcı ürünlerini çek
+        const { data: dbProducts, error } = await supabase
+          .from('products')
+          .select('*, supplier:suppliers(company_name)')
+          .eq('status', 'active')
+          .order('created_at', { ascending: false })
+
+        if (!error && dbProducts && dbProducts.length > 0) {
+          // Supabase ürünlerini DummyJSON formatına uyumlu hale getir
+          const formattedDbProducts = dbProducts.map(p => ({
+            id: p.id,
+            title: p.name,
+            price: Number(p.price) / 5,
+            thumbnail: p.image_url || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&auto=format&fit=crop',
+            rating: 5.0,
+            stock: p.stock,
+            category: p.category || 'Diğer',
+            brand: p.supplier?.company_name || 'Yerel Satıcı',
+            isSupabaseProduct: true,
+            supplier_id: p.supplier_id || null,
+          }))
+          
+          // Supabase ürünlerini listenin EN BAŞINA ekle
+          allProducts = [...formattedDbProducts, ...allProducts]
+        }
+
+        setProducts(allProducts)
+        const unique = [...new Set(allProducts.map(p => p.category))]
         setCategories(unique)
-      })
-      .finally(() => setLoading(false))
+      } catch (err) {
+        console.error('Ürünler yüklenemedi:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
   }, [])
 
   const recommended = products.slice(0, 8)
