@@ -23,6 +23,8 @@ export function AppProvider({ children }) {
     setCartItems(prev => prev.map(i => i.id === id ? { ...i, qty } : i))
   }
 
+  const clearCart = () => setCartItems([])
+
   const toggleFavorite = (product) => {
     setFavItems(prev =>
       prev.find(i => i.id === product.id)
@@ -40,7 +42,7 @@ export function AppProvider({ children }) {
   const favCount = favItems.length
 
   return (
-    <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateCartQty, cartCount, savedAddresses, addAddress, removeAddress, editAddress }}>
+    <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateCartQty, clearCart, cartCount, savedAddresses, addAddress, removeAddress, editAddress }}>
       <FavContext.Provider value={{ favItems, toggleFavorite, isFavorite, favCount }}>
         {children}
       </FavContext.Provider>

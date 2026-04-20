@@ -27,12 +27,16 @@ function App() {
   const [selectedProductId, setSelectedProductId] = useState(null)
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [authTab, setAuthTab] = useState('login')
+  const [profileTab, setProfileTab] = useState('info')
 
   const navigateTo = (v, params = {}) => {
     setView(v)
     if (params.productId !== undefined) setSelectedProductId(params.productId)
     if (params.category !== undefined) setSelectedCategory(params.category)
-    if (params.tab !== undefined) setAuthTab(params.tab)
+    if (params.tab !== undefined) {
+      if (v === 'profile') setProfileTab(params.tab)
+      else setAuthTab(params.tab)
+    }
     window.scrollTo(0, 0)
   }
 
@@ -44,7 +48,7 @@ function App() {
       case 'product':         return <ProductPage productId={selectedProductId} onBack={() => navigateTo('home')} onNavigate={navigateTo} />
       case 'cart':       return <CartPage onBack={() => navigateTo('home')} onNavigate={navigateTo} />
       case 'favorites':  return <FavoritesPage onBack={() => navigateTo('home')} onNavigate={navigateTo} />
-      case 'profile':    return <ProfilePage onBack={() => navigateTo('home')} />
+      case 'profile':    return <ProfilePage onBack={() => navigateTo('home')} initialTab={profileTab} />
       case 'category':   return <CategoryPage category={selectedCategory} onBack={() => navigateTo('home')} onProductClick={(id) => navigateTo('product', { productId: id })} />
       case 'contact':    return <ContactPage onBack={() => navigateTo('home')} />
       default:           return <HomePage onProductClick={(id) => navigateTo('product', { productId: id })} />
