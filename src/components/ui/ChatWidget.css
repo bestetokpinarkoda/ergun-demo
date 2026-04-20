@@ -242,6 +242,72 @@
   cursor: default;
 }
 
+/* Chat içi ürün listesi */
+.chat-product-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.4rem;
+}
+
+.chat-product-list-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.45rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.chat-product-list-item:hover {
+  background: #eff4ff;
+  border-color: var(--primary);
+}
+
+.chat-product-list-thumb {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  object-fit: cover;
+  background: #e2e8f0;
+}
+
+.chat-product-list-name {
+  flex: 1;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #1e293b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.chat-product-list-price {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--cta);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.chat-product-list-arrow {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.chat-product-list-footer {
+  font-size: 0.68rem;
+  color: #64748b;
+  margin-top: 0.2rem;
+  margin-bottom: 0;
+}
+
 @media (max-width: 400px) {
   .chat-widget { width: calc(100vw - 24px); right: 12px; bottom: 12px; }
 }

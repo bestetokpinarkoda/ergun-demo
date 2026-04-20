@@ -69,27 +69,27 @@ const GENERAL_REPLIES = [
   },
   {
     keywords: ['en ucuz', 'ucuz', 'uygun fiyat', 'bütçe', 'ekonomik'],
-    getText: (products) => {
+    getResponse: (products) => {
       const cheap = [...products].sort((a, b) => a.price - b.price).slice(0, 3)
-      return `En uygun fiyatlı ürünlerimizden bazıları:\n${cheap.map(p => `• ${p.title} — ${formatTL(p.price)} TL`).join('\n')}\nHangisini göstereyim?`
+      return { type: 'product-list', text: 'En uygun fiyatlı ürünlerimizden bazıları:', products: cheap, footer: 'Hangisini göstereyim?' }
     },
   },
   {
     keywords: ['en iyi', 'en yüksek puan', 'kaliteli', 'popüler', 'trend'],
-    getText: (products) => {
+    getResponse: (products) => {
       const top = [...products].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0)).slice(0, 3)
-      return `En yüksek puanlı ürünlerimiz:\n${top.map(p => `• ${p.title} — ⭐ ${p.rating?.toFixed(1)} — ${formatTL(p.price)} TL`).join('\n')}\nHangisini göstereyim?`
+      return { type: 'product-list', text: 'En yüksek puanlı ürünlerimiz:', products: top, footer: 'Hangisini göstereyim?' }
     },
   },
   {
     keywords: ['indirim', 'kampanya', 'fırsat', 'indirimli'],
-    getText: (products) => {
+    getResponse: (products) => {
       const discounted = [...products]
         .filter(p => p.discountPercentage > 5)
         .sort((a, b) => b.discountPercentage - a.discountPercentage)
         .slice(0, 3)
-      if (!discounted.length) return 'Şu an aktif kampanyamız yok, yakında ekleyeceğiz!'
-      return `En yüksek indirimliler:\n${discounted.map(p => `• ${p.title} — %${Math.round(p.discountPercentage)} indirim`).join('\n')}\nHangisini göstereyim?`
+      if (!discounted.length) return { type: 'text', text: 'Şu an aktif kampanyamız yok, yakında ekleyeceğiz!' }
+      return { type: 'product-list', text: 'En yüksek indirimliler:', products: discounted, footer: 'Hangisini göstereyim?' }
     },
   },
   {
@@ -123,16 +123,16 @@ function getBotResponse(text, products, catProducts = []) {
 
     if (INTENT_CHEAP.some(kw => lower.includes(kw))) {
       const sorted = [...resolvedCat].sort((a, b) => a.price - b.price).slice(0, 3)
-      return { type: 'text', text: `${catName} kategorisinde en uygun fiyatlılar:\n${sorted.map(p => `• ${p.title} — ${formatTL(p.price)} TL`).join('\n')}\nHangisini göstereyim?` }
+      return { type: 'product-list', text: `${catName} kategorisinde en uygun fiyatlılar:`, products: sorted, footer: 'Hangisini göstereyim?' }
     }
     if (INTENT_BEST.some(kw => lower.includes(kw))) {
       const sorted = [...resolvedCat].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0)).slice(0, 3)
-      return { type: 'text', text: `${catName} kategorisinde en yüksek puanlılar:\n${sorted.map(p => `• ${p.title} — ⭐ ${p.rating?.toFixed(1)} — ${formatTL(p.price)} TL`).join('\n')}\nHangisini göstereyim?` }
+      return { type: 'product-list', text: `${catName} kategorisinde en yüksek puanlılar:`, products: sorted, footer: 'Hangisini göstereyim?' }
     }
     if (INTENT_SALE.some(kw => lower.includes(kw))) {
       const sorted = [...resolvedCat].filter(p => p.discountPercentage > 5).sort((a, b) => b.discountPercentage - a.discountPercentage).slice(0, 3)
       if (!sorted.length) return { type: 'text', text: `${catName} kategorisinde şu an aktif kampanya yok.` }
-      return { type: 'text', text: `${catName} kategorisinde en yüksek indirimler:\n${sorted.map(p => `• ${p.title} — %${Math.round(p.discountPercentage)} indirim`).join('\n')}\nHangisini göstereyim?` }
+      return { type: 'product-list', text: `${catName} kategorisinde en yüksek indirimler:`, products: sorted, footer: 'Hangisini göstereyim?' }
     }
 
     // Sadece kategori, intent yok → en iyi ürünü öner
@@ -143,6 +143,7 @@ function getBotResponse(text, products, catProducts = []) {
   // 2. Kategori yok → genel intent kontrolü
   for (const entry of GENERAL_REPLIES) {
     if (entry.keywords.some(kw => lower.includes(kw))) {
+      if (entry.getResponse) return entry.getResponse(products)
       return { type: 'text', text: entry.getText ? entry.getText(products) : entry.text }
     }
   }
@@ -310,6 +311,28 @@ export default function ChatWidget({ onProductClick }) {
                       >
                         {addedIds.has(msg.product.id) ? '✓ Eklendi' : '🛒 Sepete Ekle'}
                       </button>
+                    </div>
+                  )}
+                  {msg.type === 'product-list' && msg.products && (
+                    <div className="chat-product-list">
+                      {msg.products.map(product => (
+                        <div
+                          key={product.id}
+                          className="chat-product-list-item"
+                          onClick={() => { onProductClick(product.id); setOpen(false) }}
+                        >
+                          <img
+                            className="chat-product-list-thumb"
+                            src={product.thumbnail}
+                            alt={product.title}
+                            onError={(e) => { e.currentTarget.style.display = 'none' }}
+                          />
+                          <span className="chat-product-list-name">{product.title}</span>
+                          <span className="chat-product-list-price">{formatTL(product.price)} TL</span>
+                          <span className="chat-product-list-arrow">→</span>
+                        </div>
+                      ))}
+                      {msg.footer && <p className="chat-product-list-footer">{msg.footer}</p>}
                     </div>
                   )}
                 </div>
