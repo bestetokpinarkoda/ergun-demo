@@ -20,19 +20,54 @@ export default function SupplierOrdersTab({ supplier }) {
     let active = true
     const load = async () => {
       setLoading(true)
-      
-      // Artık sadece ürün adından değil, doğrudan supplier_id'den sipariş kalemlerini çekebiliriz!
-      const { data: items, error } = await supabase
-        .from('order_items')
-        .select('*, orders!inner(id, order_number, status, created_at, shipping_address)')
-        .eq('supplier_id', supplier.id)
-        
-      if (!active) return
-      if (error) setError(error.message)
-      else {
-        // Gelen order_items verisini sipariş (order) bazında grupla
+      setError(null)
+
+      try {
+        const { data: products, error: prodErr } = await supabase
+          .from('products')
+          .select('id, name')
+          .eq('supplier_id', supplier.id)
+
+        if (prodErr) throw prodErr
+
+        const productIds = (products || []).map(p => p.id).filter(Boolean)
+        const productNames = (products || []).map(p => p.name).filter(Boolean)
+
+        const allItems = []
+
+        if (productIds.length > 0) {
+          const { data: byProduct, error: byProdErr } = await supabase
+            .from('order_items')
+            .select('*, orders!inner(id, order_number, status, created_at, shipping_address)')
+            .in('product_id', productIds)
+
+          if (byProdErr) throw byProdErr
+          if (byProduct) allItems.push(...byProduct)
+        }
+
+        if (productNames.length > 0) {
+          const { data: byName, error: byNameErr } = await supabase
+            .from('order_items')
+            .select('*, orders!inner(id, order_number, status, created_at, shipping_address)')
+            .in('product_name', productNames)
+
+          if (byNameErr) throw byNameErr
+
+          if (byName) {
+            const existingIds = new Set(allItems.map(i => i.id))
+            for (const i of byName) {
+              if (!existingIds.has(i.id)) {
+                allItems.push(i)
+              }
+            }
+          }
+        }
+
+        if (!active) return
+
         const grouped = new Map()
-        for (const i of items || []) {
+        for (const i of allItems) {
+          if (!i.orders) continue
           const key = i.orders.id
           const prev = grouped.get(key)
           const itemTotal = Number(i.total_price || 0)
@@ -45,8 +80,11 @@ export default function SupplierOrdersTab({ supplier }) {
         }
         setRows(Array.from(grouped.values())
           .sort((a, b) => new Date(b.created_at) - new Date(a.created_at)))
+      } catch (err) {
+        if (active) setError(err.message || 'Siparişler yüklenemedi.')
+      } finally {
+        if (active) setLoading(false)
       }
-      setLoading(false)
     }
     load()
     return () => { active = false }
