@@ -105,51 +105,49 @@ const INTENT_CHEAP = ['en ucuz', 'ucuz', 'uygun fiyat', 'bütçe', 'ekonomik']
 const INTENT_BEST  = ['en iyi', 'en yüksek puan', 'kaliteli', 'popüler', 'trend']
 const INTENT_SALE  = ['indirim', 'kampanya', 'fırsat', 'indirimli']
 
-function getBotResponse(text, products) {
-  const lower = text.toLowerCase()
-
-  // 1. Kategori tespiti
-  let matchedSlug = null
-  let catProducts = []
+function detectCategory(lower) {
   for (const [slug, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
-    if (keywords.some(kw => lower.includes(kw))) {
-      matchedSlug = slug
-      catProducts = products.filter(p => p.category === slug)
-      break
-    }
+    if (keywords.some(kw => lower.includes(kw))) return slug
   }
+  return null
+}
 
-  // 2. Kategori + intent kombinasyonu
-  if (matchedSlug && catProducts.length > 0) {
+function getBotResponse(text, products, catProducts = []) {
+  const lower = text.toLowerCase()
+  const matchedSlug = detectCategory(lower)
+  const resolvedCat = catProducts.length > 0 ? catProducts : (matchedSlug ? products.filter(p => p.category === matchedSlug) : [])
+
+  // 1. Kategori + intent kombinasyonu
+  if (matchedSlug && resolvedCat.length > 0) {
     const catName = `${CATEGORY_ICONS[matchedSlug] || '📦'} ${CATEGORY_TR[matchedSlug]}`
 
     if (INTENT_CHEAP.some(kw => lower.includes(kw))) {
-      const sorted = [...catProducts].sort((a, b) => a.price - b.price).slice(0, 3)
+      const sorted = [...resolvedCat].sort((a, b) => a.price - b.price).slice(0, 3)
       return { type: 'text', text: `${catName} kategorisinde en uygun fiyatlılar:\n${sorted.map(p => `• ${p.title} — ${formatTL(p.price)} TL`).join('\n')}\nHangisini göstereyim?` }
     }
     if (INTENT_BEST.some(kw => lower.includes(kw))) {
-      const sorted = [...catProducts].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0)).slice(0, 3)
+      const sorted = [...resolvedCat].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0)).slice(0, 3)
       return { type: 'text', text: `${catName} kategorisinde en yüksek puanlılar:\n${sorted.map(p => `• ${p.title} — ⭐ ${p.rating?.toFixed(1)} — ${formatTL(p.price)} TL`).join('\n')}\nHangisini göstereyim?` }
     }
     if (INTENT_SALE.some(kw => lower.includes(kw))) {
-      const sorted = [...catProducts].filter(p => p.discountPercentage > 5).sort((a, b) => b.discountPercentage - a.discountPercentage).slice(0, 3)
+      const sorted = [...resolvedCat].filter(p => p.discountPercentage > 5).sort((a, b) => b.discountPercentage - a.discountPercentage).slice(0, 3)
       if (!sorted.length) return { type: 'text', text: `${catName} kategorisinde şu an aktif kampanya yok.` }
       return { type: 'text', text: `${catName} kategorisinde en yüksek indirimler:\n${sorted.map(p => `• ${p.title} — %${Math.round(p.discountPercentage)} indirim`).join('\n')}\nHangisini göstereyim?` }
     }
 
     // Sadece kategori, intent yok → en iyi ürünü öner
-    const best = [...catProducts].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))[0]
+    const best = [...resolvedCat].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))[0]
     return { type: 'product', text: `${catName} kategorisinden önerim 👇`, product: best }
   }
 
-  // 3. Kategori yok → genel intent kontrolü
+  // 2. Kategori yok → genel intent kontrolü
   for (const entry of GENERAL_REPLIES) {
     if (entry.keywords.some(kw => lower.includes(kw))) {
       return { type: 'text', text: entry.getText ? entry.getText(products) : entry.text }
     }
   }
 
-  // 4. Ürün adı / marka eşleşmesi
+  // 3. Ürün adı / marka eşleşmesi
   if (products.length > 0) {
     const words = lower.split(/\s+/).filter(w => w.length > 2)
     const match = products.find(p => {
@@ -242,14 +240,27 @@ export default function ChatWidget({ onProductClick }) {
     })
   }
 
-  const send = () => {
+  const send = async () => {
     const trimmed = input.trim()
     if (!trimmed) return
+    setInput('')
     setMessages(prev => [...prev,
       { from: 'user', type: 'text', text: trimmed },
-      { from: 'bot', ...getBotResponse(trimmed, products) },
+      { from: 'bot', type: 'typing', text: '...' },
     ])
-    setInput('')
+
+    const slug = detectCategory(trimmed.toLowerCase())
+    let catProducts = []
+    if (slug) {
+      try {
+        const res = await fetch(`https://dummyjson.com/products/category/${slug}?limit=200&select=id,title,price,thumbnail,rating,category,discountPercentage,brand`)
+        const data = await res.json()
+        catProducts = data.products ?? []
+      } catch {}
+    }
+
+    const response = getBotResponse(trimmed, products, catProducts)
+    setMessages(prev => [...prev.filter(m => m.type !== 'typing'), { from: 'bot', ...response }])
   }
 
   return (
@@ -271,7 +282,7 @@ export default function ChatWidget({ onProductClick }) {
             {messages.map((msg, i) => (
               <div key={i} className={`chat-widget-row ${msg.from}`}>
                 {msg.from === 'bot' && <span className="chat-widget-avatar">🤖</span>}
-                <div className="chat-widget-bubble">
+                <div className={`chat-widget-bubble${msg.type === 'typing' ? ' typing' : ''}`}>
                   <span style={{ whiteSpace: 'pre-line' }}>{msg.text}</span>
                   {msg.type === 'product' && msg.product && (
                     <div className="chat-product-card">

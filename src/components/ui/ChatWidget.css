@@ -101,6 +101,12 @@
   border: 1px solid #e2e8f0;
 }
 
+.chat-widget-bubble.typing {
+  color: #94a3b8;
+  font-style: italic;
+  letter-spacing: 2px;
+}
+
 .chat-widget-row.user .chat-widget-bubble {
   background: var(--primary);
   color: #fff;
