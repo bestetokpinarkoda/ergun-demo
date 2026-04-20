@@ -1,3 +1,44 @@
+.admin-tabs {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.admin-tab-btn {
+  padding: 12px 24px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.admin-tab-btn:hover {
+  color: var(--primary);
+}
+
+.admin-tab-btn.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.admin-status-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.admin-status-badge.status-preparing { background-color: #fef3c7; color: #b45309; }
+.admin-status-badge.status-shipped { background-color: #dbeafe; color: #1d4ed8; }
+.admin-status-badge.status-delivered { background-color: #dcfce3; color: #15803d; }
+.admin-status-badge.status-cancelled { background-color: #fee2e2; color: #b91c1c; }
+
 .admin-dashboard {
   min-height: 100vh;
   background-color: #0f172a;

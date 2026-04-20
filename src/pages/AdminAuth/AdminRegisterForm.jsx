@@ -3,8 +3,16 @@ import LegalModal from '../../components/auth/LegalModal'
 import { useAuth } from '../../contexts/AuthContext'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
-const IBAN_RE = /^[A-Z]{2}[0-9]{2}[A-Z0-9]{1,30}$/
+const IBAN_RE = /^TR[0-9]{24}$/
 const VKN_RE = /^[0-9]{10}$/
+
+const formatIban = (v) => {
+  const raw = String(v || '').replace(/\s/g, '').toUpperCase()
+  const after = raw.startsWith('TR') ? raw.slice(2) : raw.replace(/^T?R?/, '')
+  const digits = after.replace(/\D/g, '').slice(0, 24)
+  const grouped = digits.match(/.{1,4}/g)?.join(' ') || ''
+  return digits ? `TR ${grouped}` : 'TR'
+}
 
 function scorePassword(pw) {
   let score = 0
@@ -71,7 +79,7 @@ export default function AdminRegisterForm() {
 
   const validateStep3 = () => {
     const errs = {}
-    if (!IBAN_RE.test(iban.replace(/\s/g, ''))) errs.iban = 'Geçerli bir IBAN gir.'
+    if (!IBAN_RE.test(iban.replace(/\s/g, ''))) errs.iban = 'TR ile başlayan ve 24 rakamdan oluşan IBAN gir.'
     if (password.length < 8) errs.password = 'Şifre en az 8 karakter olmalı.'
     if (confirm !== password) errs.confirm = 'Şifreler eşleşmiyor.'
     if (!legalAccepted) errs.legal = 'Kullanım koşullarını kabul etmelisiniz.'
@@ -102,6 +110,15 @@ export default function AdminRegisterForm() {
         password,
         fullName: `${firstName} ${lastName}`,
         role: 'supplier',
+        extra: {
+          company_name: companyName.trim(),
+          tax_number: vkn,
+          authorized_person: `${firstName} ${lastName}`.trim(),
+          phone: phone.trim(),
+          company_address: companyAddress.trim(),
+          city: city.trim(),
+          iban: iban.replace(/\s/g, ''),
+        },
       })
       setSubmitted(true)
     } catch (err) {
@@ -303,13 +320,15 @@ export default function AdminRegisterForm() {
               <span className="admin-field-label">IBAN *</span>
               <input
                 type="text"
-                inputMode="text"
+                inputMode="numeric"
                 value={iban}
                 onChange={(e) => {
-                  setIban(e.target.value.toUpperCase())
+                  setIban(formatIban(e.target.value))
                   if (fieldErrors.iban) setFieldErrors({ ...fieldErrors, iban: '' })
                 }}
-                placeholder="TR33 0006 1001 6000 0006 2000 01"
+                onFocus={() => { if (!iban) setIban('TR ') }}
+                placeholder="TR ____ ____ ____ ____ ____ ____"
+                maxLength={32}
                 className={fieldErrors.iban ? 'has-error' : ''}
                 disabled={loading}
               />

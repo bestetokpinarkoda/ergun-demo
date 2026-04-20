@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '../../store/AppContext'
 import { useCart } from '../../store/AppContext'
+import { supabase } from '../../lib/supabase'
 import './CartPage.css'
 
 /* ─── Helpers ────────────────────────────── */
@@ -57,13 +58,24 @@ function StepIndicator({ step }) {
 }
 
 /* ─── Order Summary ──────────────────────── */
-function OrderSummary({ items, onNext, nextLabel, loading, couponApplied, step }) {
+function OrderSummary({ items, onNext, nextLabel, loading, couponApplied, step, payment }) {
   const [coupon, setCoupon] = useState('')
   const [couponOk, setCouponOk] = useState(couponApplied)
+  
   const subtotal = items.reduce((s, i) => s + parsePrice(i.price) * i.qty, 0)
   const shipping = subtotal >= 1000 ? 0 : 79.90
   const discount = couponOk ? Math.round(subtotal * 0.1) : 0
-  const total = subtotal + shipping - discount
+  
+  // Taksit vade farkını hesapla
+  let installmentFee = 0
+  if (payment && payment.method === 'card' && payment.installment > 1) {
+    const selectedInst = INSTALLMENTS.find(i => i.months === payment.installment)
+    if (selectedInst) {
+      installmentFee = Math.round((subtotal + shipping - discount) * selectedInst.rate)
+    }
+  }
+
+  const total = subtotal + shipping - discount + installmentFee
 
   return (
     <div className="order-summary">
@@ -86,6 +98,7 @@ function OrderSummary({ items, onNext, nextLabel, loading, couponApplied, step }
         <div className="os-row"><span>Ara Toplam</span><span>{fmtTL(subtotal)} TL</span></div>
         <div className="os-row"><span>Kargo</span><span className={shipping === 0 ? 'os-free' : ''}>{shipping === 0 ? 'Ücretsiz' : `${fmtTL(shipping)} TL`}</span></div>
         {discount > 0 && <div className="os-row discount"><span>Kupon İndirimi</span><span>-{fmtTL(discount)} TL</span></div>}
+        {installmentFee > 0 && <div className="os-row"><span>Vade Farkı</span><span>+{fmtTL(installmentFee)} TL</span></div>}
         <div className="os-divider" />
         <div className="os-row total"><span>Toplam</span><span>{fmtTL(total)} TL</span></div>
       </div>
@@ -160,12 +173,26 @@ function CartItemRow({ item, onQty, onRemove }) {
 }
 
 /* ─── Address Form ───────────────────────── */
-function AddressStep({ address, setAddress, onNext }) {
+function AddressStep({ address, setAddress, onNext, savedAddresses, selectedAddressId, setSelectedAddressId }) {
   const [errors, setErrors] = useState({})
 
   const fill = () => {
     const d = DEMO_ADDRESSES[Math.floor(Math.random() * DEMO_ADDRESSES.length)]
     setAddress(d)
+    setSelectedAddressId(null)
+    setErrors({})
+  }
+
+  const pickSaved = (a) => {
+    setSelectedAddressId(a.id)
+    setAddress({
+      name: a.full_name || '',
+      phone: a.phone || '',
+      city: a.city || '',
+      district: a.district || '',
+      neighborhood: '',
+      fullAddress: a.address_line || '',
+    })
     setErrors({})
   }
 
@@ -194,6 +221,29 @@ function AddressStep({ address, setAddress, onNext }) {
         <h2 className="step-section-title">Teslimat Adresi</h2>
         <button className="auto-fill-btn" onClick={fill}>⚡ Otomatik Doldur</button>
       </div>
+
+      {savedAddresses && savedAddresses.length > 0 && (
+        <div className="saved-picker">
+          <p className="saved-picker-title">Kayıtlı Adreslerim</p>
+          <div className="saved-picker-list">
+            {savedAddresses.map(a => (
+              <button
+                key={a.id}
+                type="button"
+                className={`saved-picker-item ${selectedAddressId === a.id ? 'is-selected' : ''}`}
+                onClick={() => pickSaved(a)}
+              >
+                <span className="saved-picker-label">
+                  {a.title} {a.is_default && <em>(Varsayılan)</em>}
+                </span>
+                <span className="saved-picker-detail">{a.full_name} · {a.city}</span>
+                <span className="saved-picker-detail-sm">{a.address_line}</span>
+              </button>
+            ))}
+          </div>
+          <p className="saved-picker-hint">veya aşağıdan yeni adres gir:</p>
+        </div>
+      )}
 
       <div className="addr-grid">
         <label className="addr-field">
@@ -305,13 +355,24 @@ function CardVisual({ cardNumber, cardName, expiry, cvv, flipped }) {
 }
 
 /* ─── Payment Step ───────────────────────── */
-function PaymentStep({ payment, setPayment, total, onNext }) {
+function PaymentStep({ payment, setPayment, total, onNext, loading, savedCards }) {
   const [errors, setErrors] = useState({})
   const [cvvFocus, setCvvFocus] = useState(false)
 
   const fill = () => {
     const d = DEMO_CARDS[Math.floor(Math.random() * DEMO_CARDS.length)]
     setPayment(p => ({ ...p, ...d }))
+    setErrors({})
+  }
+
+  const pickSaved = (c) => {
+    setPayment(p => ({
+      ...p,
+      cardName: c.holder_name || '',
+      expiry: `${String(c.expiry_month).padStart(2, '0')}/${String(c.expiry_year).slice(-2)}`,
+      cardNumber: `•••• •••• •••• ${c.last4}`,
+      cvv: '',
+    }))
     setErrors({})
   }
 
@@ -370,6 +431,31 @@ function PaymentStep({ payment, setPayment, total, onNext }) {
             cvv={payment.cvv}
             flipped={cvvFocus}
           />
+
+          {savedCards && savedCards.length > 0 && (
+            <div className="saved-picker">
+              <p className="saved-picker-title">Kayıtlı Kartlarım</p>
+              <div className="saved-picker-list">
+                {savedCards.map(c => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className="saved-picker-item"
+                    onClick={() => pickSaved(c)}
+                  >
+                    <span className="saved-picker-label">
+                      {c.brand?.toUpperCase() || 'KART'} •••• {c.last4}
+                    </span>
+                    <span className="saved-picker-detail">{c.holder_name}</span>
+                    <span className="saved-picker-detail-sm">
+                      Son Kul: {String(c.expiry_month).padStart(2, '0')}/{String(c.expiry_year).slice(-2)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <p className="saved-picker-hint">veya yeni kart bilgilerini gir:</p>
+            </div>
+          )}
 
           <div className="pay-form-header">
             <span className="pay-form-title">Kart Bilgileri</span>
@@ -479,16 +565,16 @@ function PaymentStep({ payment, setPayment, total, onNext }) {
         </div>
       )}
 
-      <button className="step-next-btn" onClick={() => { if (validate()) onNext() }}>
-        Siparişi Tamamla →
+      <button className="step-next-btn" onClick={() => { if (validate()) onNext() }} disabled={loading}>
+        {loading ? 'Sipariş oluşturuluyor...' : 'Siparişi Tamamla →'}
       </button>
     </div>
   )
 }
 
 /* ─── Success Step ───────────────────────── */
-function SuccessStep({ onHome, onNewOrder }) {
-  const orderId = `#ER${new Date().getFullYear()}-${Math.floor(Math.random() * 90000 + 10000)}`
+function SuccessStep({ orderNumber, onHome, onOrders }) {
+  const orderId = orderNumber ? `#${orderNumber}` : ''
   const delivery = new Date()
   delivery.setDate(delivery.getDate() + 3)
   const deliveryStr = delivery.toLocaleDateString('tr-TR', { day:'numeric', month:'long' })
@@ -533,8 +619,8 @@ function SuccessStep({ onHome, onNewOrder }) {
       </div>
 
       <div className="success-actions">
-        <button className="success-btn-primary" onClick={onHome}>Ana Sayfaya Dön</button>
-        <button className="success-btn-outline" onClick={onNewOrder}>Yeni Sipariş Ver</button>
+        <button className="success-btn-primary" onClick={onOrders}>Siparişlerime Git</button>
+        <button className="success-btn-outline" onClick={onHome}>Ana Sayfaya Dön</button>
       </div>
     </div>
   )
@@ -543,19 +629,127 @@ function SuccessStep({ onHome, onNewOrder }) {
 /* ─── Main CartPage ──────────────────────── */
 export default function CartPage({ onBack, onNavigate }) {
   const { user, requireAuth } = useAuth()
-  const { cartItems, removeFromCart, updateCartQty } = useCart()
+  const { cartItems, removeFromCart, updateCartQty, clearCart } = useCart()
 
   const [step, setStep] = useState(1)
   const [address, setAddress] = useState({ name:'', phone:'', city:'', district:'', neighborhood:'', fullAddress:'' })
   const [payment, setPayment] = useState({ method:'card', cardNumber:'', cardName:'', expiry:'', cvv:'', installment:1 })
 
+  const [savedAddresses, setSavedAddresses] = useState([])
+  const [savedCards, setSavedCards] = useState([])
+  const [selectedAddressId, setSelectedAddressId] = useState(null)
+
+  const [placing, setPlacing] = useState(false)
+  const [placeError, setPlaceError] = useState(null)
+  const [completedOrderNumber, setCompletedOrderNumber] = useState(null)
+
   const subtotal = cartItems.reduce((s, i) => s + parsePrice(i.price) * i.qty, 0)
   const shipping = subtotal >= 1000 ? 0 : 79.90
-  const total = subtotal + shipping
+  let installmentFee = 0
+  if (payment.method === 'card' && payment.installment > 1) {
+    const selectedInst = INSTALLMENTS.find(i => i.months === payment.installment)
+    if (selectedInst) {
+      installmentFee = Math.round((subtotal + shipping) * selectedInst.rate)
+    }
+  }
+  const total = subtotal + shipping + installmentFee
+
+  useEffect(() => {
+    if (!user) {
+      setSavedAddresses([])
+      setSavedCards([])
+      return
+    }
+    let active = true
+    const load = async () => {
+      const [{ data: addrs }, { data: cards }] = await Promise.all([
+        supabase.from('addresses').select('*')
+          .order('is_default', { ascending: false })
+          .order('created_at', { ascending: false }),
+        supabase.from('saved_cards').select('*')
+          .order('is_default', { ascending: false })
+          .order('created_at', { ascending: false }),
+      ])
+      if (!active) return
+      setSavedAddresses(addrs || [])
+      setSavedCards(cards || [])
+      const defaultAddr = (addrs || []).find(a => a.is_default) || (addrs || [])[0]
+      if (defaultAddr) {
+        setSelectedAddressId(defaultAddr.id)
+        setAddress({
+          name: defaultAddr.full_name || '',
+          phone: defaultAddr.phone || '',
+          city: defaultAddr.city || '',
+          district: defaultAddr.district || '',
+          neighborhood: '',
+          fullAddress: defaultAddr.address_line || '',
+        })
+      }
+    }
+    load()
+    return () => { active = false }
+  }, [user])
+
+  const generateOrderNumber = () =>
+    `ER${new Date().getFullYear()}-${Math.floor(Math.random() * 900000 + 100000)}`
+
+  const PAYMENT_METHOD_LABELS = { card: 'Kredi / Banka Kartı', bank: 'Banka Havalesi', door: 'Kapıda Ödeme' }
 
   const placeOrder = () => {
-    requireAuth(() => {
-      setStep(4)
+    requireAuth(async () => {
+      if (!user) return
+      setPlacing(true)
+      setPlaceError(null)
+      try {
+        const orderNumber = generateOrderNumber()
+        const shippingPayload = {
+          title: savedAddresses.find(a => a.id === selectedAddressId)?.title || 'Teslimat Adresi',
+          full_name: address.name,
+          phone: address.phone,
+          city: address.city,
+          district: address.district,
+          address_line: [address.neighborhood, address.fullAddress].filter(Boolean).join(' ').trim(),
+          zip_code: null,
+        }
+        const { data: orderRow, error: orderErr } = await supabase
+          .from('orders')
+          .insert({
+            user_id: user.id,
+            order_number: orderNumber,
+            status: 'preparing',
+            total_amount: total,
+            payment_method: PAYMENT_METHOD_LABELS[payment.method] || payment.method,
+            shipping_address: shippingPayload,
+          })
+          .select()
+          .single()
+        if (orderErr) throw orderErr
+
+        const items = cartItems.map(i => {
+          const unit = parsePrice(i.price)
+          const isSupa = i.isSupabaseProduct || String(i.id).length > 10
+          return {
+            order_id: orderRow.id,
+            product_name: i.name,
+            product_image: i.img,
+            quantity: i.qty,
+            unit_price: unit,
+            total_price: unit * i.qty,
+            product_id: isSupa ? i.id : null,
+            supplier_id: isSupa ? (i.supplierId || null) : null,
+          }
+        })
+        const { error: itemsErr } = await supabase.from('order_items').insert(items)
+        if (itemsErr) throw itemsErr
+
+        setCompletedOrderNumber(orderNumber)
+        clearCart()
+        setStep(4)
+      } catch (err) {
+        setPlaceError(err.message || 'Sipariş oluşturulamadı.')
+      } finally {
+        setPlacing(false)
+      }
     })
   }
 
@@ -565,8 +759,9 @@ export default function CartPage({ onBack, onNavigate }) {
         <div className="cart-container">
           <StepIndicator step={4} />
           <SuccessStep
+            orderNumber={completedOrderNumber}
             onHome={onBack}
-            onNewOrder={() => { setStep(1); onBack() }}
+            onOrders={() => onNavigate?.('profile', { tab: 'orders' })}
           />
         </div>
       </main>
@@ -624,16 +819,26 @@ export default function CartPage({ onBack, onNavigate }) {
                   address={address}
                   setAddress={setAddress}
                   onNext={() => setStep(3)}
+                  savedAddresses={savedAddresses}
+                  selectedAddressId={selectedAddressId}
+                  setSelectedAddressId={setSelectedAddressId}
                 />
               )}
 
               {step === 3 && (
-                <PaymentStep
-                  payment={payment}
-                  setPayment={setPayment}
-                  total={total}
-                  onNext={placeOrder}
-                />
+                <>
+                  <PaymentStep
+                    payment={payment}
+                    setPayment={setPayment}
+                    total={total}
+                    onNext={placeOrder}
+                    loading={placing}
+                    savedCards={savedCards}
+                  />
+                  {placeError && (
+                    <div className="cart-error-alert">{placeError}</div>
+                  )}
+                </>
               )}
             </div>
 
@@ -642,6 +847,8 @@ export default function CartPage({ onBack, onNavigate }) {
               <OrderSummary
                 items={cartItems}
                 step={step}
+                payment={payment}
+                loading={placing}
                 onNext={step < 3 ? () => requireAuth(() => setStep(s => s + 1)) : placeOrder}
                 nextLabel={step === 3 ? 'Siparişi Tamamla' : 'Devam Et →'}
               />

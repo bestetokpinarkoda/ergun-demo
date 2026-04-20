@@ -5,33 +5,50 @@ import './AdminDashboard.css'
 
 export default function AdminDashboard({ onExit }) {
   const { user, profile, signOut } = useAuth()
-  const [stats, setStats] = useState({ users: 0, customers: 0, suppliers: 0, admins: 0 })
+  const [stats, setStats] = useState({ users: 0, customers: 0, suppliers: 0, admins: 0, totalOrders: 0, totalRevenue: 0 })
   const [users, setUsers] = useState([])
+  const [recentOrders, setRecentOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [activeTab, setActiveTab] = useState('users')
 
   useEffect(() => {
     let active = true
     const load = async () => {
       setLoading(true)
       setError(null)
-      const { data, error } = await supabase
+      
+      // Kullanıcıları Çek
+      const { data: usersData, error: userError } = await supabase
         .from('profiles')
         .select('id, full_name, role, avatar_url, phone, created_at')
         .order('created_at', { ascending: false })
 
+      // Siparişleri Çek
+      const { data: ordersData, error: orderError } = await supabase
+        .from('orders')
+        .select('id, order_number, total_amount, status, created_at, profiles(full_name)')
+        .order('created_at', { ascending: false })
+
       if (!active) return
-      if (error) {
-        setError(error.message)
+      if (userError || orderError) {
+        setError(userError?.message || orderError?.message)
         setLoading(false)
         return
       }
-      setUsers(data || [])
+      
+      setUsers(usersData || [])
+      setRecentOrders(ordersData || [])
+      
+      const totalRevenue = (ordersData || []).reduce((sum, o) => sum + Number(o.total_amount || 0), 0)
+
       setStats({
-        users: data.length,
-        customers: data.filter(u => u.role === 'customer').length,
-        suppliers: data.filter(u => u.role === 'supplier').length,
-        admins: data.filter(u => u.role === 'admin').length,
+        users: usersData.length,
+        customers: usersData.filter(u => u.role === 'customer').length,
+        suppliers: usersData.filter(u => u.role === 'supplier').length,
+        admins: usersData.filter(u => u.role === 'admin').length,
+        totalOrders: (ordersData || []).length,
+        totalRevenue
       })
       setLoading(false)
     }
@@ -72,74 +89,148 @@ export default function AdminDashboard({ onExit }) {
         </div>
       </header>
 
-      <section className="admin-stats">
-        <StatCard label="Toplam Kullanıcı" value={stats.users} />
-        <StatCard label="Müşteri" value={stats.customers} accent="blue" />
-        <StatCard label="Tedarikçi" value={stats.suppliers} accent="amber" />
-        <StatCard label="Admin" value={stats.admins} accent="rose" />
-      </section>
+      <div className="admin-tabs">
+        <button 
+          className={`admin-tab-btn ${activeTab === 'users' ? 'active' : ''}`}
+          onClick={() => setActiveTab('users')}
+        >
+          Kullanıcılar
+        </button>
+        <button 
+          className={`admin-tab-btn ${activeTab === 'orders' ? 'active' : ''}`}
+          onClick={() => setActiveTab('orders')}
+        >
+          Siparişler
+        </button>
+      </div>
 
-      <section className="admin-panel">
-        <div className="admin-panel-header">
-          <h2>Kullanıcı Yönetimi</h2>
-          <p>Sistemdeki kullanıcıları görüntüle ve rollerini düzenle.</p>
-        </div>
+      {activeTab === 'users' && (
+        <>
+          <section className="admin-stats">
+            <StatCard label="Toplam Kullanıcı" value={stats.users} />
+            <StatCard label="Müşteri" value={stats.customers} accent="blue" />
+            <StatCard label="Tedarikçi" value={stats.suppliers} accent="amber" />
+            <StatCard label="Admin" value={stats.admins} accent="rose" />
+          </section>
 
-        {error && <div className="admin-alert">{error}</div>}
+          <section className="admin-panel">
+            <div className="admin-panel-header">
+              <h2>Kullanıcı Yönetimi</h2>
+              <p>Sistemdeki kullanıcıları görüntüle ve rollerini düzenle.</p>
+            </div>
 
-        {loading ? (
-          <div className="admin-loading">Yükleniyor...</div>
-        ) : (
-          <div className="admin-table-wrap">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Kullanıcı</th>
-                  <th>Telefon</th>
-                  <th>Rol</th>
-                  <th>Kayıt</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map(u => (
-                  <tr key={u.id}>
-                    <td>
-                      <div className="admin-user-cell">
-                        <div className="admin-avatar">
-                          {u.avatar_url
-                            ? <img src={u.avatar_url} alt="" referrerPolicy="no-referrer" />
-                            : (u.full_name?.charAt(0)?.toUpperCase() || '?')}
-                        </div>
-                        <div className="admin-user-cell-info">
-                          <span>{u.full_name || 'İsimsiz'}</span>
-                          <small>{u.id.slice(0, 8)}...</small>
-                        </div>
-                      </div>
-                    </td>
-                    <td>{u.phone || '-'}</td>
-                    <td>
-                      <select
-                        value={u.role}
-                        onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                        disabled={u.id === user?.id}
-                        className={`admin-role-select role-${u.role}`}
-                      >
-                        <option value="customer">customer</option>
-                        <option value="supplier">supplier</option>
-                        <option value="admin">admin</option>
-                      </select>
-                    </td>
-                    <td>{new Date(u.created_at).toLocaleDateString('tr-TR')}</td>
-                  </tr>
-                ))}
-                {users.length === 0 && (
-                  <tr><td colSpan="4" className="admin-empty">Kayıt bulunamadı.</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+            {error && <div className="admin-alert">{error}</div>}
+
+            {loading ? (
+              <div className="admin-loading">Yükleniyor...</div>
+            ) : (
+              <div className="admin-table-wrap">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Kullanıcı</th>
+                      <th>Telefon</th>
+                      <th>Rol</th>
+                      <th>Kayıt</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.map(u => (
+                      <tr key={u.id}>
+                        <td>
+                          <div className="admin-user-cell">
+                            <div className="admin-avatar">
+                              {u.avatar_url ? <img src={u.avatar_url} alt="" /> : (u.full_name?.charAt(0) || '?')}
+                            </div>
+                            <div className="admin-user-cell-info">
+                              <span>{u.full_name || 'İsimsiz'}</span>
+                              <small>{u.id.slice(0, 8)}...</small>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="admin-phone-cell">{u.phone || '-'}</td>
+                        <td>
+                          <select
+                            className={`admin-role-select role-${u.role}`}
+                            value={u.role}
+                            onChange={(e) => handleRoleChange(u.id, e.target.value)}
+                            disabled={u.id === user.id}
+                          >
+                            <option value="customer">Müşteri</option>
+                            <option value="supplier">Tedarikçi</option>
+                            <option value="admin">Admin</option>
+                          </select>
+                        </td>
+                        <td className="admin-date-cell">
+                          {new Date(u.created_at).toLocaleDateString('tr-TR')}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </>
+      )}
+
+      {activeTab === 'orders' && (
+        <>
+          <section className="admin-stats">
+            <StatCard label="Toplam Sipariş" value={stats.totalOrders} accent="blue" />
+            <StatCard label="Toplam Gelir" value={`${new Intl.NumberFormat('tr-TR').format(stats.totalRevenue)} TL`} accent="amber" />
+          </section>
+
+          <section className="admin-panel">
+            <div className="admin-panel-header">
+              <h2>Tüm Siparişler</h2>
+              <p>Sistemdeki tüm alışveriş hareketleri.</p>
+            </div>
+
+            {error && <div className="admin-alert">{error}</div>}
+
+            {loading ? (
+              <div className="admin-loading">Yükleniyor...</div>
+            ) : (
+              <div className="admin-table-wrap">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Sipariş No</th>
+                      <th>Müşteri</th>
+                      <th>Tutar</th>
+                      <th>Tarih</th>
+                      <th>Durum</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentOrders.map(o => (
+                      <tr key={o.id}>
+                        <td><strong>#{o.order_number}</strong></td>
+                        <td>{o.profiles?.full_name || 'Bilinmiyor'}</td>
+                        <td>{new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(o.total_amount)}</td>
+                        <td className="admin-date-cell">
+                          {new Date(o.created_at).toLocaleDateString('tr-TR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute:'2-digit' })}
+                        </td>
+                        <td>
+                          <span className={`admin-status-badge status-${o.status}`}>
+                            {o.status === 'preparing' ? 'Hazırlanıyor' : o.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                    {recentOrders.length === 0 && (
+                      <tr>
+                        <td colSpan="5" style={{textAlign: 'center', padding: '20px'}}>Henüz sipariş bulunmuyor.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </>
+      )}
     </main>
   )
 }

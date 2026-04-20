@@ -5,9 +5,9 @@ import CardsTab from './tabs/CardsTab'
 import OrdersTab from './tabs/OrdersTab'
 import './ProfilePage.css'
 
-export default function ProfilePage({ onLogout }) {
+export default function ProfilePage({ onLogout, initialTab = 'info' }) {
   const { user, profile, signOut, updateProfile } = useAuth()
-  const [activeTab, setActiveTab] = useState('info')
+  const [activeTab, setActiveTab] = useState(initialTab)
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
   const [saving, setSaving] = useState(false)

@@ -87,12 +87,12 @@ export function AuthProvider({ children }) {
     }
   }, [fetchProfile])
 
-  const signUp = useCallback(async ({ email, password, fullName, role }) => {
+  const signUp = useCallback(async ({ email, password, fullName, role, extra }) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { full_name: fullName, role },
+        data: { full_name: fullName, role, ...(extra || {}) },
       },
     })
     if (error) throw error
