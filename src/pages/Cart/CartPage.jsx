@@ -725,9 +725,26 @@ export default function CartPage({ onBack, onNavigate }) {
           .single()
         if (orderErr) throw orderErr
 
+        const supaIds = Array.from(new Set(
+          cartItems
+            .filter(i => (i.isSupabaseProduct || String(i.id).length > 10) && !i.supplierId)
+            .map(i => i.id)
+        ))
+
+        let supplierMap = new Map()
+        if (supaIds.length > 0) {
+          const { data: supaProducts, error: supaErr } = await supabase
+            .from('products')
+            .select('id, supplier_id')
+            .in('id', supaIds)
+          if (supaErr) throw supaErr
+          supplierMap = new Map((supaProducts || []).map(p => [p.id, p.supplier_id]))
+        }
+
         const items = cartItems.map(i => {
           const unit = parsePrice(i.price)
           const isSupa = i.isSupabaseProduct || String(i.id).length > 10
+          const supplierId = isSupa ? (i.supplierId || supplierMap.get(i.id) || null) : null
           return {
             order_id: orderRow.id,
             product_name: i.name,
@@ -736,7 +753,7 @@ export default function CartPage({ onBack, onNavigate }) {
             unit_price: unit,
             total_price: unit * i.qty,
             product_id: isSupa ? i.id : null,
-            supplier_id: isSupa ? (i.supplierId || null) : null,
+            supplier_id: supplierId,
           }
         })
         const { error: itemsErr } = await supabase.from('order_items').insert(items)

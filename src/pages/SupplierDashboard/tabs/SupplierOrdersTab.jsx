@@ -23,45 +23,14 @@ export default function SupplierOrdersTab({ supplier }) {
       setError(null)
 
       try {
-        const { data: products, error: prodErr } = await supabase
-          .from('products')
-          .select('id, name')
+        const { data: items, error: itemsErr } = await supabase
+          .from('order_items')
+          .select('*, orders!inner(id, order_number, status, created_at, shipping_address)')
           .eq('supplier_id', supplier.id)
 
-        if (prodErr) throw prodErr
+        if (itemsErr) throw itemsErr
 
-        const productIds = (products || []).map(p => p.id).filter(Boolean)
-        const productNames = (products || []).map(p => p.name).filter(Boolean)
-
-        const allItems = []
-
-        if (productIds.length > 0) {
-          const { data: byProduct, error: byProdErr } = await supabase
-            .from('order_items')
-            .select('*, orders!inner(id, order_number, status, created_at, shipping_address)')
-            .in('product_id', productIds)
-
-          if (byProdErr) throw byProdErr
-          if (byProduct) allItems.push(...byProduct)
-        }
-
-        if (productNames.length > 0) {
-          const { data: byName, error: byNameErr } = await supabase
-            .from('order_items')
-            .select('*, orders!inner(id, order_number, status, created_at, shipping_address)')
-            .in('product_name', productNames)
-
-          if (byNameErr) throw byNameErr
-
-          if (byName) {
-            const existingIds = new Set(allItems.map(i => i.id))
-            for (const i of byName) {
-              if (!existingIds.has(i.id)) {
-                allItems.push(i)
-              }
-            }
-          }
-        }
+        const allItems = items || []
 
         if (!active) return
 
