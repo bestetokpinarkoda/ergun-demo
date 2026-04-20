@@ -1,12 +1,29 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useState, useEffect } from 'react'
+import { supabase } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
 
 const CartContext = createContext(null)
 const FavContext = createContext(null)
 
 export function AppProvider({ children }) {
+  const { user } = useAuth()
   const [cartItems, setCartItems] = useState([])
   const [favItems, setFavItems] = useState([])
   const [savedAddresses, setSavedAddresses] = useState([])
+
+  useEffect(() => {
+    if (!user) {
+      setFavItems([])
+      return
+    }
+    supabase
+      .from('favorites')
+      .select('product_data')
+      .eq('user_id', user.id)
+      .then(({ data, error }) => {
+        if (!error && data) setFavItems(data.map(r => r.product_data))
+      })
+  }, [user?.id])
 
   const addToCart = (product, qty = 1) => {
     setCartItems(prev => {
@@ -25,12 +42,19 @@ export function AppProvider({ children }) {
 
   const clearCart = () => setCartItems([])
 
-  const toggleFavorite = (product) => {
+  const toggleFavorite = async (product) => {
+    const isAlreadyFav = favItems.some(i => i.id === product.id)
     setFavItems(prev =>
-      prev.find(i => i.id === product.id)
+      isAlreadyFav
         ? prev.filter(i => i.id !== product.id)
         : [...prev, product]
     )
+    if (!user) return
+    if (isAlreadyFav) {
+      await supabase.from('favorites').delete().eq('user_id', user.id).eq('product_id', String(product.id))
+    } else {
+      await supabase.from('favorites').upsert({ user_id: user.id, product_id: String(product.id), product_data: product })
+    }
   }
 
   const addAddress = (addr) => setSavedAddresses(prev => [...prev, addr])

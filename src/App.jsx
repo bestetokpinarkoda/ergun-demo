@@ -13,6 +13,7 @@ import AdminDashboard from './pages/AdminDashboard/AdminDashboard'
 import SupplierDashboard from './pages/SupplierDashboard/SupplierDashboard'
 import CategoryPage from './pages/Category/CategoryPage'
 import ContactPage from './pages/Contact/ContactPage'
+import BecomeSupplierPage from './pages/BecomeSupplier/BecomeSupplierPage'
 import LoginModal from './components/ui/LoginModal'
 import ChatWidget from './components/ui/ChatWidget'
 import { AppProvider } from './store/AppContext'
@@ -44,7 +45,7 @@ function App() {
   const renderView = () => {
     switch (view) {
       case 'auth':            return <AuthPage onBack={() => navigateTo('home')} initialTab={authTab} />
-      case 'admin-auth':      return <AdminAuthPage onBack={() => navigateTo('home')} />
+      case 'admin-auth':      return <AdminAuthPage onBack={() => navigateTo('home')} initialTab={authTab} />
       case 'admin-dashboard': return <AdminDashboard onExit={() => navigateTo('home')} />
       case 'supplier-dashboard': return <SupplierDashboard onExit={() => navigateTo('home')} />
       case 'product':         return <ProductPage productId={selectedProductId} onBack={() => navigateTo('home')} onNavigate={navigateTo} />
@@ -52,7 +53,8 @@ function App() {
       case 'favorites':  return <FavoritesPage onBack={() => navigateTo('home')} onNavigate={navigateTo} />
       case 'profile':    return <ProfilePage onBack={() => navigateTo('home')} initialTab={profileTab} />
       case 'category':   return <CategoryPage category={selectedCategory} onBack={() => navigateTo('home')} onProductClick={(id) => navigateTo('product', { productId: id })} />
-      case 'contact':    return <ContactPage onBack={() => navigateTo('home')} />
+      case 'contact':         return <ContactPage onBack={() => navigateTo('home')} />
+      case 'become-supplier': return <BecomeSupplierPage onBack={() => navigateTo('home')} onNavigate={navigateTo} />
       default:           return <HomePage onProductClick={(id) => navigateTo('product', { productId: id })} />
     }
   }
@@ -65,7 +67,7 @@ function App() {
     if (user && (view === 'auth' || view === 'admin-auth')) {
       if (role === 'admin') setView('admin-dashboard')
       else if (role === 'supplier') setView('supplier-dashboard')
-      else setView('home')
+      else if (view === 'auth') setView('home')
       return
     }
     if (role === 'admin' && view === 'home') {
@@ -93,6 +95,7 @@ function App() {
               onProfileClick={() => navigateTo('profile')}
               onCategoryClick={(cat) => navigateTo('category', { category: cat })}
               onProductClick={(id) => navigateTo('product', { productId: id })}
+              onBecomeSupplierClick={() => navigateTo('become-supplier')}
             />
           )}
           {renderView()}
