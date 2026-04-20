@@ -3,7 +3,7 @@ import AdminRegisterForm from './AdminRegisterForm'
 import SupplierLoginForm from './SupplierLoginForm'
 import './AdminAuthPage.css'
 
-export default function AdminAuthPage({ onBack, initialTab = 'login' }) {
+export default function AdminAuthPage({ onBack, initialTab = 'login', hideTabs = false }) {
   const [tab, setTab] = useState(initialTab)
 
   return (
@@ -27,22 +27,24 @@ export default function AdminAuthPage({ onBack, initialTab = 'login' }) {
           </p>
         </div>
 
-        <div className="admin-auth-tabs">
-          <button
-            type="button"
-            className={`admin-auth-tab ${tab === 'login' ? 'is-active' : ''}`}
-            onClick={() => setTab('login')}
-          >
-            Giriş Yap
-          </button>
-          <button
-            type="button"
-            className={`admin-auth-tab ${tab === 'register' ? 'is-active' : ''}`}
-            onClick={() => setTab('register')}
-          >
-            Satıcı Başvurusu
-          </button>
-        </div>
+        {!hideTabs && (
+          <div className="admin-auth-tabs">
+            <button
+              type="button"
+              className={`admin-auth-tab ${tab === 'login' ? 'is-active' : ''}`}
+              onClick={() => setTab('login')}
+            >
+              Giriş Yap
+            </button>
+            <button
+              type="button"
+              className={`admin-auth-tab ${tab === 'register' ? 'is-active' : ''}`}
+              onClick={() => setTab('register')}
+            >
+              Satıcı Başvurusu
+            </button>
+          </div>
+        )}
 
         <div className="admin-auth-form-wrap">
           {tab === 'login' ? <SupplierLoginForm /> : <AdminRegisterForm />}

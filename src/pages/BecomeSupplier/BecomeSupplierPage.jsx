@@ -110,7 +110,7 @@ export default function BecomeSupplierPage({ onBack, onNavigate }) {
         </div>
 
         <div className="bs-cta-wrap">
-          <button className="bs-cta-btn" onClick={() => onNavigate('supplier-dashboard')}>
+          <button className="bs-cta-btn" onClick={() => onNavigate('admin-auth')}>
             Şimdi Başvur
           </button>
           <p className="bs-cta-note">Başvuru ücretsizdir. Onay sonrası otomatik olarak tedarikçi panelinize yönlendirilirsiniz.</p>

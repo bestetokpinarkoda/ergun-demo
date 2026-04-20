@@ -45,7 +45,7 @@ function App() {
   const renderView = () => {
     switch (view) {
       case 'auth':            return <AuthPage onBack={() => navigateTo('home')} initialTab={authTab} />
-      case 'admin-auth':      return <AdminAuthPage onBack={() => navigateTo('home')} />
+      case 'admin-auth':      return <AdminAuthPage onBack={() => navigateTo('home')} initialTab={authTab} />
       case 'admin-dashboard': return <AdminDashboard onExit={() => navigateTo('home')} />
       case 'supplier-dashboard': return <SupplierDashboard onExit={() => navigateTo('home')} />
       case 'product':         return <ProductPage productId={selectedProductId} onBack={() => navigateTo('home')} onNavigate={navigateTo} />
@@ -67,7 +67,7 @@ function App() {
     if (user && (view === 'auth' || view === 'admin-auth')) {
       if (role === 'admin') setView('admin-dashboard')
       else if (role === 'supplier') setView('supplier-dashboard')
-      else setView('home')
+      else if (view === 'auth') setView('home')
       return
     }
     if (role === 'admin' && view === 'home') {
