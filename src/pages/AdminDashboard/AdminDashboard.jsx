@@ -18,36 +18,41 @@ export default function AdminDashboard({ onExit }) {
       setLoading(true)
       setError(null)
       
-      // Kullanıcıları Çek
       const { data: usersData, error: userError } = await supabase
         .from('profiles')
         .select('id, full_name, role, avatar_url, phone, created_at')
         .order('created_at', { ascending: false })
 
-      // Siparişleri Çek
       const { data: ordersData, error: orderError } = await supabase
         .from('orders')
-        .select('id, order_number, total_amount, status, created_at, profiles(full_name)')
+        .select('id, order_number, total_amount, status, created_at, user_id')
         .order('created_at', { ascending: false })
 
       if (!active) return
-      if (userError || orderError) {
-        setError(userError?.message || orderError?.message)
-        setLoading(false)
-        return
-      }
+      if (userError) setError(userError.message)
+      if (orderError && !userError) setError(orderError.message)
+
+      const safeUsers = userError ? [] : (usersData || [])
+      const safeOrders = orderError ? [] : (ordersData || [])
+
+      const usersById = new Map(safeUsers.map(u => [u.id, u]))
+
+      const ordersWithNames = safeOrders.map(o => ({
+        ...o,
+        customer_name: usersById.get(o.user_id)?.full_name || null,
+      }))
+
+      setUsers(safeUsers)
+      setRecentOrders(ordersWithNames)
       
-      setUsers(usersData || [])
-      setRecentOrders(ordersData || [])
-      
-      const totalRevenue = (ordersData || []).reduce((sum, o) => sum + Number(o.total_amount || 0), 0)
+      const totalRevenue = safeOrders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0)
 
       setStats({
-        users: usersData.length,
-        customers: usersData.filter(u => u.role === 'customer').length,
-        suppliers: usersData.filter(u => u.role === 'supplier').length,
-        admins: usersData.filter(u => u.role === 'admin').length,
-        totalOrders: (ordersData || []).length,
+        users: safeUsers.length,
+        customers: safeUsers.filter(u => u.role === 'customer').length,
+        suppliers: safeUsers.filter(u => u.role === 'supplier').length,
+        admins: safeUsers.filter(u => u.role === 'admin').length,
+        totalOrders: ordersWithNames.length,
         totalRevenue
       })
       setLoading(false)
@@ -207,7 +212,7 @@ export default function AdminDashboard({ onExit }) {
                     {recentOrders.map(o => (
                       <tr key={o.id}>
                         <td><strong>#{o.order_number}</strong></td>
-                        <td>{o.profiles?.full_name || 'Bilinmiyor'}</td>
+                        <td>{o.customer_name || 'Bilinmiyor'}</td>
                         <td>{new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(o.total_amount)}</td>
                         <td className="admin-date-cell">
                           {new Date(o.created_at).toLocaleDateString('tr-TR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute:'2-digit' })}
